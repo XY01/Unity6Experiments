@@ -2,98 +2,60 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
-// Serializable graph data
-[CreateAssetMenu(fileName = "New Graph", menuName = "Custom/Runtime Graph")]
-public class RuntimeGraph : ScriptableObject
+namespace Xy01.NodeGraph
 {
-    [Serializable]
-    public class NodeData
+// Serializable graph data
+    [CreateAssetMenu(fileName = "New Graph", menuName = "Custom/Runtime Graph")]
+    public class RuntimeGraph : ScriptableObject
     {
-        public string guid;
-        public string type;
-        public Vector2 position;
-        public List<ConnectionData> connections = new List<ConnectionData>();
-        public Material material; // For material nodes
-    }
+        [Serializable]
+        public class NodeData
+        {
+            public string Guid;
+            public string Type;
+            public Vector2 Position;
+            public List<ConnectionData> Connections = new();
+            public Material Material; // For material nodes
+        }
 
-    [Serializable]
-    public class ConnectionData
-    {
-        public string outputNodeGuid;
-        public string inputNodeGuid;
-        public string outputPortName;
-        public string inputPortName;
-    }
+        [Serializable]
+        public class ConnectionData
+        {
+            public string OutputNodeGuid;
+            public string InputNodeGuid;
+            public string OutputPortName;
+            public string InputPortName;
+        }
 
-    public List<NodeData> nodes = new List<NodeData>();
-}
+        public List<NodeData> Nodes = new();
+    }
 
 // Runtime node base class
-public abstract class RuntimeNode
-{
-    public string Guid { get; set; }
-    protected Dictionary<string, float> inputValues = new Dictionary<string, float>();
-    protected internal Dictionary<string, List<(RuntimeNode node, string portName)>> outputConnections 
-        = new Dictionary<string, List<(RuntimeNode, string)>>();
-
-    public virtual void ProcessNode()
+    public abstract class RuntimeNode
     {
-        // Override in derived classes
-    }
+        public string Guid { get; set; }
+        protected Dictionary<string, float> InputValues = new();
 
-    public void SetInputValue(string portName, float value)
-    {
-        inputValues[portName] = value;
-    }
+        protected internal Dictionary<string, List<(RuntimeNode node, string portName)>> OutputConnections = new();
 
-    protected void PropagateOutput(string portName, float value)
-    {
-        if (outputConnections.TryGetValue(portName, out var connections))
+        public virtual void ProcessNode()
         {
-            foreach (var (node, inputPort) in connections)
-            {
-                node.SetInputValue(inputPort, value);
-            }
+            // Override in derived classes
         }
-    }
-}
 
-// Runtime node implementations
-public class RuntimeTimeNode : RuntimeNode
-{
-    public override void ProcessNode()
-    {
-        PropagateOutput("Time", Time.time);
-    }
-}
-
-public class RuntimeSinWaveNode : RuntimeNode
-{
-    public override void ProcessNode()
-    {
-        if (inputValues.TryGetValue("Input", out float input))
+        public void SetInputValue(string portName, float value)
         {
-            PropagateOutput("Output", Mathf.Sin(input));
+            InputValues[portName] = value;
         }
-    }
-}
 
-public class RuntimeMaterialPropertyNode : RuntimeNode
-{
-    private Material material;
-    
-    public void Initialize(Material mat)
-    {
-        material = mat;
-    }
-
-    public override void ProcessNode()
-    {
-        if (material != null)
+        protected void PropagateOutput(string portName, float value)
         {
-            foreach (var input in inputValues)
+            if (OutputConnections.TryGetValue(portName, out var connections))
             {
-                material.SetFloat(input.Key, input.Value);
+                foreach (var (node, inputPort) in connections)
+                {
+                    node.SetInputValue(inputPort, value);
+                }
             }
         }
     }

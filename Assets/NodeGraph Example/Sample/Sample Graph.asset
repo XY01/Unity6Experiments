@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e7a96be752e5fa4aa5b5a99f346ff4a, type: 3}
+  m_Name: Sample Graph
+  m_EditorClassIdentifier: 
+  Nodes:
+  - Guid: c1c3ef50efcf32e4e907f5c53e6cd45a
+    Type: TimeNode
+    Position: {x: 0, y: 0}
+    Connections:
+    - OutputNodeGuid: c1c3ef50efcf32e4e907f5c53e6cd45a
+      InputNodeGuid: abc30269614545846ac2f5683841b990
+      OutputPortName: Time
+      InputPortName: Input
+    Material: {fileID: 0}
+  - Guid: abc30269614545846ac2f5683841b990
+    Type: SinWaveNode
+    Position: {x: 177, y: 0}
+    Connections:
+    - OutputNodeGuid: abc30269614545846ac2f5683841b990
+      InputNodeGuid: ec658c6aeb1ae2842b561ec368a2eb45
+      OutputPortName: Output
+      InputPortName: _ColourScalar
+    Material: {fileID: 0}
+  - Guid: ec658c6aeb1ae2842b561ec368a2eb45
+    Type: MaterialPropertyNode
+    Position: {x: 435, y: 0}
+    Connections: []
+    Material: {fileID: 2100000, guid: dce58b4ca0ed31c48b08579821271c2b, type: 2}

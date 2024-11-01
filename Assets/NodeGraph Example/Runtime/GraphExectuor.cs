@@ -1,96 +1,104 @@
 
-// Runtime graph executor
+using System.Collections.Generic;
+using UnityEngine;
 
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine;
-using System;
-using System.Collections.Generic;
-public class GraphExecutor : MonoBehaviour
+namespace Xy01.NodeGraph
 {
-    public RuntimeGraph graph;
-    private Dictionary<string, RuntimeNode> runtimeNodes = new Dictionary<string, RuntimeNode>();
-    
-    void Start()
+    /// <summary>
+    /// Executes a node graph at runtime
+    /// </summary>
+    [ExecuteInEditMode]
+    public class GraphExecutor : MonoBehaviour
     {
-        if (graph != null)
+        bool CanExecute => Graph != null;
+        
+        public RuntimeGraph Graph;
+        private Dictionary<string, RuntimeNode> _runtimeNodes = new();
+
+        void Start()
         {
+            if (!CanExecute) return;
+            
             InitializeGraph();
-        }
-    }
-
-    void Update()
-    {
-        ExecuteGraph();
-    }
-
-    private void InitializeGraph()
-    {
-        // Create runtime nodes
-        foreach (var nodeData in graph.nodes)
-        {
-            RuntimeNode node = CreateNode(nodeData);
-            if (node != null)
-            {
-                node.Guid = nodeData.guid;
-                runtimeNodes[nodeData.guid] = node;
-            }
+            
         }
 
-        // Set up connections
-        foreach (var nodeData in graph.nodes)
+        void Update()
         {
-            foreach (var connection in nodeData.connections)
+            if (!CanExecute) return;
+            
+            ExecuteGraph();
+        }
+
+        private void InitializeGraph()
+        {
+            // Create runtime nodes
+            foreach (var nodeData in Graph.Nodes)
             {
-                if (runtimeNodes.TryGetValue(connection.outputNodeGuid, out var outputNode) &&
-                    runtimeNodes.TryGetValue(connection.inputNodeGuid, out var inputNode))
+                RuntimeNode node = CreateNode(nodeData);
+                if (node != null)
                 {
-                    outputNode.outputConnections.TryGetValue(connection.outputPortName, out var connections);
-                    if (connections == null)
+                    node.Guid = nodeData.Guid;
+                    _runtimeNodes[nodeData.Guid] = node;
+                }
+            }
+
+            // Set up connections
+            foreach (var nodeData in Graph.Nodes)
+            {
+                foreach (var connection in nodeData.Connections)
+                {
+                    if (_runtimeNodes.TryGetValue(connection.OutputNodeGuid, out var outputNode) &&
+                        _runtimeNodes.TryGetValue(connection.InputNodeGuid, out var inputNode))
                     {
-                        connections = new List<(RuntimeNode, string)>();
-                        outputNode.outputConnections[connection.outputPortName] = connections;
+                        outputNode.OutputConnections.TryGetValue(connection.OutputPortName, out var connections);
+                        if (connections == null)
+                        {
+                            connections = new List<(RuntimeNode, string)>();
+                            outputNode.OutputConnections[connection.OutputPortName] = connections;
+                        }
+
+                        connections.Add((inputNode, connection.InputPortName));
                     }
-                    connections.Add((inputNode, connection.inputPortName));
                 }
             }
         }
-    }
 
-    private RuntimeNode CreateNode(RuntimeGraph.NodeData data)
-    {
-        switch (data.type)
+        private RuntimeNode CreateNode(RuntimeGraph.NodeData data)
         {
-            case "TimeNode":
-                return new RuntimeTimeNode();
-            case "SinWaveNode":
-                return new RuntimeSinWaveNode();
-            case "MaterialPropertyNode":
-                var matNode = new RuntimeMaterialPropertyNode();
-                matNode.Initialize(data.material);
-                return matNode;
-            default:
-                return null;
-        }
-    }
-
-    private void ExecuteGraph()
-    {
-        // Execute all nodes (order matters, so we start with time nodes)
-        foreach (var node in runtimeNodes.Values)
-        {
-            if (node is RuntimeTimeNode)
+            switch (data.Type)
             {
-                node.ProcessNode();
+                case "TimeNode":
+                    return new RuntimeTimeNode();
+                case "SinWaveNode":
+                    return new RuntimeSinWaveNode();
+                case "MaterialPropertyNode":
+                    var matNode = new RuntimeMaterialPropertyNode();
+                    matNode.Initialize(data.Material);
+                    return matNode;
+                default:
+                    return null;
             }
         }
 
-        // Then process the rest
-        foreach (var node in runtimeNodes.Values)
+        private void ExecuteGraph()
         {
-            if (!(node is RuntimeTimeNode))
+            // Execute all nodes (order matters, so we start with time nodes)
+            foreach (var node in _runtimeNodes.Values)
             {
-                node.ProcessNode();
+                if (node is RuntimeTimeNode)
+                {
+                    node.ProcessNode();
+                }
+            }
+
+            // Then process the rest
+            foreach (var node in _runtimeNodes.Values)
+            {
+                if (!(node is RuntimeTimeNode))
+                {
+                    node.ProcessNode();
+                }
             }
         }
     }
