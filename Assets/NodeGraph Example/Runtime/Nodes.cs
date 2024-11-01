@@ -37,7 +37,7 @@ namespace Xy01.NodeGraph
             }
         }
     }
-
+    [NodeInfo("Material", "Mat Props")]
     public class RuntimeMaterialPropertyNode : RuntimeNode
     {
         private Material _material;
