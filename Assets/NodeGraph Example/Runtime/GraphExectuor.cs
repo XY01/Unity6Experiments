@@ -72,10 +72,16 @@ namespace Xy01.NodeGraph
                     return new RuntimeTimeNode();
                 case "SinWaveNode":
                     return new RuntimeSinWaveNode();
+                case "ClampNode":
+                    return new RuntimeClampNode();
                 case "MaterialPropertyNode":
                     var matNode = new RuntimeMaterialPropertyNode();
                     matNode.Initialize(data.Material);
                     return matNode;
+                case "FloatValueNode":
+                    var floatNode = new RuntimeFloatValueNode();
+                    floatNode.Initialize(data.FloatValue);
+                    return floatNode;
                 default:
                     return null;
             }

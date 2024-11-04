@@ -1,14 +1,12 @@
-using UnityEngine;
-using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine.UIElements;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEditor.UIElements;
 
 namespace Xy01.NodeGraph.Editor
 {
+    /// <summary>
+    /// Sets up the graph view with the default manipulators like panning, zooming, selecting, etc.
+    /// </summary>
     public class CustomGraphView : GraphView
     {
         public CustomGraphView()
@@ -19,11 +17,18 @@ namespace Xy01.NodeGraph.Editor
             this.AddManipulator(new SelectionDragger());
             this.AddManipulator(new RectangleSelector());
 
-            var grid = new GridBackground();
-            Insert(0, grid);
-            grid.StretchToParentSize();
+            var gridBackground = new GridBackground();
+            Insert(0, gridBackground);
+            gridBackground.StretchToParentSize();
         }
 
+        /// <summary>
+        /// Returns a list of ports that are compatible with the given start port.
+        /// TODO - not currently used. Will be used in the future to disable incompatible ports when creating connections.
+        /// </summary>
+        /// <param name="startPort"></param>
+        /// <param name="nodeAdapter"></param>
+        /// <returns></returns>
         public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)
         {
             var compatiblePorts = new List<Port>();
@@ -37,6 +42,9 @@ namespace Xy01.NodeGraph.Editor
             return compatiblePorts;
         }
 
+        /// <summary>
+        /// Removes all nodes and edges from the graph.
+        /// </summary>
         public void Clear()
         {
             foreach (var node in nodes.ToList())
@@ -48,101 +56,6 @@ namespace Xy01.NodeGraph.Editor
             {
                 RemoveElement(edge);
             }
-        }
-    }
-
-    public class TimeNode : Node
-    {
-        public TimeNode()
-        {
-            title = "Time";
-
-            var output = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(float));
-            output.portName = "Time";
-            outputContainer.Add(output);
-
-            RefreshExpandedState();
-            RefreshPorts();
-        }
-    }
-
-    public class SinWaveNode : Node
-    {
-        public SinWaveNode()
-        {
-            title = "Sin Wave";
-
-            // Input port
-            var input = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(float));
-            input.portName = "Input";
-            inputContainer.Add(input);
-
-            // Output port
-            var output = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(float));
-            output.portName = "Output";
-            outputContainer.Add(output);
-
-            RefreshExpandedState();
-            RefreshPorts();
-        }
-    }
-
-    public class MaterialPropertyNode : Node
-    {
-        private Material material;
-        private Dictionary<string, Port> propertyPorts = new Dictionary<string, Port>();
-
-        public MaterialPropertyNode(Material material)
-        {
-            this.material = material;
-            title = "Material Properties";
-
-            var materialField = new ObjectField("Material")
-            {
-                objectType = typeof(Material),
-                value = material
-            };
-            materialField.RegisterValueChangedCallback(evt =>
-            {
-                material = evt.newValue as Material;
-                RefreshPorts();
-            });
-            mainContainer.Add(materialField);
-
-            RefreshPorts();
-        }
-
-        public Material GetMaterial()
-        {
-            return material;
-        }
-
-        private void RefreshPorts()
-        {
-            // Clear existing ports
-            foreach (var port in propertyPorts.Values)
-            {
-                inputContainer.Remove(port);
-            }
-
-            propertyPorts.Clear();
-
-            if (material != null)
-            {
-                MaterialProperty[] properties = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { material });
-                foreach (MaterialProperty prop in properties)
-                {
-                    if (prop.type == MaterialProperty.PropType.Float)
-                    {
-                        var port = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(float));
-                        port.portName = prop.name;
-                        inputContainer.Add(port);
-                        propertyPorts[prop.name] = port;
-                    }
-                }
-            }
-
-            RefreshExpandedState();
         }
     }
 }

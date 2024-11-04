@@ -101,12 +101,16 @@ namespace Xy01.NodeGraph.Editor
             toolbar.Add(graphField);
 
             // Add node creation buttons
-            var addTimeButton = new Button(() => { AddNode("TimeNode"); }) { text = "Add Time Node" };
-            var addSinButton = new Button(() => { AddNode("SinWaveNode"); }) { text = "Add Sin Wave Node" };
-            var addMaterialButton = new Button(() => { AddMaterialNode(); }) { text = "Add Material Node" };
+            var addTimeButton = new Button(() => { AddNode("TimeNode"); }) { text = "Add Time" };
+            var addSinButton = new Button(() => { AddNode("SinWaveNode"); }) { text = "Add Sin Wave" };
+            var addClampButton = new Button(() => { AddNode("ClampNode"); }) { text = "Add Clamp" };
+            var addFloatValueButton = new Button(() => { AddNode("FloatValueNode"); }) { text = "Add Float Value" };
+            var addMaterialButton = new Button(() => { AddMaterialNode(); }) { text = "Add Material" };
 
             toolbar.Add(addTimeButton);
             toolbar.Add(addSinButton);
+            toolbar.Add(addClampButton);
+            toolbar.Add(addFloatValueButton);
             toolbar.Add(addMaterialButton);
 
             // Add save button
@@ -152,6 +156,12 @@ namespace Xy01.NodeGraph.Editor
                 {
                     nodeData.Material = matNode.GetMaterial();
                 }
+                
+                // Save material reference for material nodes
+                if (node is FloatValueNode floatNode)
+                {
+                    nodeData.FloatValue = floatNode.floatValue;
+                }
 
                 // Save connections
                 foreach (var output in node.outputContainer.Children().OfType<Port>())
@@ -196,6 +206,12 @@ namespace Xy01.NodeGraph.Editor
                         break;
                     case "SinWaveNode":
                         node = new SinWaveNode();
+                        break;
+                    case "ClampNode":
+                        node = new ClampNode();
+                        break;
+                    case "FloatValueNode":
+                        node = new FloatValueNode();
                         break;
                     case "MaterialPropertyNode":
                         node = new MaterialPropertyNode(nodeData.Material);
@@ -244,6 +260,12 @@ namespace Xy01.NodeGraph.Editor
                     break;
                 case "SinWaveNode":
                     node = new SinWaveNode();
+                    break;
+                case "ClampNode":
+                    node = new ClampNode();
+                    break;
+                case "FloatValueNode":
+                    node = new FloatValueNode();
                     break;
             }
 

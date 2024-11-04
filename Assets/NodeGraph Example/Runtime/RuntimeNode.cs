@@ -1,41 +1,26 @@
-using UnityEngine;
-using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Xy01.NodeGraph
 {
-// Serializable graph data
-    [CreateAssetMenu(fileName = "New Graph", menuName = "Custom/Runtime Graph")]
-    public class RuntimeGraph : ScriptableObject
-    {
-        [Serializable]
-        public class NodeData
-        {
-            public string Guid;
-            public string Type;
-            public Vector2 Position;
-            public List<ConnectionData> Connections = new();
-            public Material Material; // For material nodes
-        }
-
-        [Serializable]
-        public class ConnectionData
-        {
-            public string OutputNodeGuid;
-            public string InputNodeGuid;
-            public string OutputPortName;
-            public string InputPortName;
-        }
-
-        public List<NodeData> Nodes = new();
-    }
-
-// Runtime node base class
+    /// <summary>
+    /// Base class for all runtime nodes
+    /// </summary>
     public abstract class RuntimeNode
     {
+        /// <summary>
+        /// Unique identifier for this node
+        /// </summary>
         public string Guid { get; set; }
+        /// <summary>
+        /// All inputs to this node
+        /// TODO - currently these are just floats, but could be extended to hold other types in future
+        /// </summary>
         protected Dictionary<string, float> InputValues = new();
-
+        /// <summary>
+        /// A dictionary of all output connections from this node to other nodes
+        /// As each port can connect to multiple inputs on other nodes it holds a list of other nodes it connects too and the name of the port it connects from
+        /// </summary>
         protected internal Dictionary<string, List<(RuntimeNode node, string portName)>> OutputConnections = new();
 
         public virtual void ProcessNode()

@@ -1,31 +1,25 @@
 using System;
 using UnityEngine;
 
+
 namespace Xy01.NodeGraph
 {
-    // Runtime node implementations
+    // A collection of all nodes in the project
+    // TODO: Split nodes up eventually into smaller packages
+ 
+    /// <summary> Outputs current time </summary>
     public class RuntimeTimeNode : RuntimeNode
     {
         public override void ProcessNode()
         {
             PropagateOutput("Time", Time.time);
-        }
-    }
-    
-    // Attribute to mark node types with category and display name
-    [AttributeUsage(AttributeTargets.Class)]
-    public class NodeInfoAttribute : Attribute
-    {
-        public string Category { get; private set; }
-        public string DisplayName { get; private set; }
-
-        public NodeInfoAttribute(string category, string displayName = null)
-        {
-            Category = category;
-            DisplayName = displayName ?? "Missing Name";
+            PropagateOutput("Time 2", Time.time * 2);
         }
     }
 
+    /// <summary>
+    /// Outputs a sin wave
+    /// </summary>
     [NodeInfo("Math/Basic", "Sin")]
     public class RuntimeSinWaveNode : RuntimeNode
     {
@@ -37,6 +31,7 @@ namespace Xy01.NodeGraph
             }
         }
     }
+    
     [NodeInfo("Material", "Mat Props")]
     public class RuntimeMaterialPropertyNode : RuntimeNode
     {
@@ -60,7 +55,7 @@ namespace Xy01.NodeGraph
     }
     
    // Basic Math Operations
-    public class ClampNode : RuntimeNode
+    public class RuntimeClampNode : RuntimeNode
     {
         public override void ProcessNode()
         {
@@ -70,6 +65,23 @@ namespace Xy01.NodeGraph
             {
                 PropagateOutput("Output", Mathf.Clamp(input, min, max));
             }
+        }
+    }
+    
+   
+    [NodeInfo("Values/Float", "Float")]
+    public class RuntimeFloatValueNode : RuntimeNode
+    {
+        private float _value = 0f;
+        
+        public void Initialize(float val)
+        {
+            _value = val;
+        }
+        
+        public override void ProcessNode()
+        {
+            PropagateOutput("FloatValue", _value);
         }
     }
 

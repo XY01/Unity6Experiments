@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: UnlitTest
+  m_Name: Unlit Sin
   m_Shader: {fileID: 4800000, guid: b832a228cb6551e49967788e04b69f24, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -38,7 +38,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _AlphaCutoff: 0.5
-    - _ColourScalar: 0.6368942
+    - _ColourScalar: 0.9769029
     - _Float0: 0.56423396
     - _QueueControl: 0
     - _QueueOffset: 0

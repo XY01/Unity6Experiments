@@ -21,7 +21,12 @@ MonoBehaviour:
       InputNodeGuid: abc30269614545846ac2f5683841b990
       OutputPortName: Time
       InputPortName: Input
+    - OutputNodeGuid: c1c3ef50efcf32e4e907f5c53e6cd45a
+      InputNodeGuid: 7f40d2fd1379d3248868882ad9f2741a
+      OutputPortName: Time 2
+      InputPortName: Input
     Material: {fileID: 0}
+    FloatValue: 0
   - Guid: abc30269614545846ac2f5683841b990
     Type: SinWaveNode
     Position: {x: 177, y: 0}
@@ -31,8 +36,56 @@ MonoBehaviour:
       OutputPortName: Output
       InputPortName: _ColourScalar
     Material: {fileID: 0}
+    FloatValue: 0
   - Guid: ec658c6aeb1ae2842b561ec368a2eb45
     Type: MaterialPropertyNode
     Position: {x: 435, y: 0}
     Connections: []
     Material: {fileID: 2100000, guid: dce58b4ca0ed31c48b08579821271c2b, type: 2}
+    FloatValue: 0
+  - Guid: 7f40d2fd1379d3248868882ad9f2741a
+    Type: SinWaveNode
+    Position: {x: 177, y: 267}
+    Connections:
+    - OutputNodeGuid: 7f40d2fd1379d3248868882ad9f2741a
+      InputNodeGuid: 9d76ec454c8e7414485d008f2d2f2d2e
+      OutputPortName: Output
+      InputPortName: Input
+    Material: {fileID: 0}
+    FloatValue: 0
+  - Guid: 0c0900d5e7a25464785a6ed17c50e466
+    Type: MaterialPropertyNode
+    Position: {x: 755, y: 283}
+    Connections: []
+    Material: {fileID: 2100000, guid: 6170acef6b21b144da8166f5ee84d34d, type: 2}
+    FloatValue: 0
+  - Guid: 9d76ec454c8e7414485d008f2d2f2d2e
+    Type: ClampNode
+    Position: {x: 477, y: 344}
+    Connections:
+    - OutputNodeGuid: 9d76ec454c8e7414485d008f2d2f2d2e
+      InputNodeGuid: 0c0900d5e7a25464785a6ed17c50e466
+      OutputPortName: Output
+      InputPortName: _ColourScalar
+    Material: {fileID: 0}
+    FloatValue: 0
+  - Guid: 5222c59afecf52143b1c849719321542
+    Type: FloatValueNode
+    Position: {x: 177, y: 462}
+    Connections:
+    - OutputNodeGuid: 5222c59afecf52143b1c849719321542
+      InputNodeGuid: 9d76ec454c8e7414485d008f2d2f2d2e
+      OutputPortName: FloatValue
+      InputPortName: Min
+    Material: {fileID: 0}
+    FloatValue: 0.1
+  - Guid: 579bc06a8e7343e43bec12b7df3374fa
+    Type: FloatValueNode
+    Position: {x: 177, y: 605}
+    Connections:
+    - OutputNodeGuid: 579bc06a8e7343e43bec12b7df3374fa
+      InputNodeGuid: 9d76ec454c8e7414485d008f2d2f2d2e
+      OutputPortName: FloatValue
+      InputPortName: Max
+    Material: {fileID: 0}
+    FloatValue: 1

@@ -11,9 +11,7 @@ using Xy01.NodeGraph.Editor;
 
 namespace Xy01.NodeGraph.Editor
 {
-
-
-
+   
     public class NodeSearchWindow : ScriptableObject, ISearchWindowProvider
     {
         private CustomGraphView graphView;
