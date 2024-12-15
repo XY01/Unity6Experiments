@@ -1,0 +1,14 @@
+{
+    "name": "Xy01.NodeGraph",
+    "rootNamespace": "Xy01.NodeGraph",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
