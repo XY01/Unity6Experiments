@@ -6,15 +6,16 @@ Shader "Fire2"
 	{
 		[HideInInspector] _AlphaCutoff("Alpha Cutoff ", Range(0, 1)) = 0.5
 		[HideInInspector] _EmissionColor("Emission Color", Color) = (1,1,1,1)
+		_Freq("Freq", Vector) = (1,0.2,0,0)
+		_ErosionStr("Erosion Str", Float) = 1
 		_ErosionSoftness("ErosionSoftness", Float) = 0
+		_Distortion("Distortion", Float) = 0.12
 		_ErosionVMaskExp("ErosionVMaskExp", Float) = 0.5
-		_Distortion("Distortion", Float) = 0.4
 		_PanSpeed("PanSpeed", Float) = 0.2
 		_UVFreq("UVFreq", Vector) = (1,1,0,0)
-		_Freq("Freq", Vector) = (1,0.2,0,0)
 		_NoiseScales("NoiseScales", Vector) = (9,20,0,0)
+		_NoiseGenScale("NoiseGenScale", Float) = 50
 		_FireSmoke("FireSmoke", Range( 0 , 1)) = 0
-		_ErosionStr("Erosion Str", Float) = 1
 
 
 		//_TessPhongStrength( "Tess Phong Strength", Range( 0, 1 ) ) = 0.5
@@ -41,7 +42,7 @@ Shader "Fire2"
 
 		
 
-		Tags { "RenderPipeline"="UniversalPipeline" "RenderType"="Opaque" "Queue"="Geometry" "UniversalMaterialType"="Unlit" }
+		Tags { "RenderPipeline"="UniversalPipeline" "RenderType"="Transparent" "Queue"="Transparent" "UniversalMaterialType"="Unlit" }
 
 		Cull Back
 		AlphaToMask Off
@@ -166,8 +167,8 @@ Shader "Fire2"
 			Name "Forward"
 			Tags { "LightMode"="UniversalForwardOnly" }
 
-			Blend One Zero, One Zero
-			ZWrite On
+			Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
+			ZWrite Off
 			ZTest LEqual
 			Offset 0 , 0
 			ColorMask RGBA
@@ -182,6 +183,7 @@ Shader "Fire2"
 			#pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
 			#pragma multi_compile_fog
 			#define ASE_FOG 1
+			#define _SURFACE_TYPE_TRANSPARENT 1
 			#define ASE_SRP_VERSION 170003
 
 
@@ -255,6 +257,7 @@ Shader "Fire2"
 			float2 _Freq;
 			float _Distortion;
 			float _PanSpeed;
+			float _NoiseGenScale;
 			float _ErosionSoftness;
 			float _ErosionStr;
 			float _ErosionVMaskExp;
@@ -505,7 +508,7 @@ Shader "Fire2"
 					#endif
 				#endif
 
-				Gradient gradient25 = NewGradient( 0, 5, 2, float4( 0.01007854, 0.00222499, 0.03529412, 0 ), float4( 0.7075472, 0.1880461, 0.1368369, 0.4398871 ), float4( 0.8344762, 0.5460323, 0.2452056, 0.7390097 ), float4( 0.990566, 0.9862624, 0.378471, 0.9648127 ), float4( 0.9921569, 0.9921569, 0.9921569, 1 ), 0, 0, 0, float2( 1, 0 ), float2( 1, 1 ), 0, 0, 0, 0, 0, 0 );
+				Gradient gradient25 = NewGradient( 0, 5, 3, float4( 0.1037736, 0.0250089, 0.01713243, 0 ), float4( 0.7075472, 0.1880461, 0.1368369, 0.3577783 ), float4( 0.8344762, 0.5460323, 0.2452056, 0.7390097 ), float4( 0.990566, 0.9862624, 0.378471, 0.9882658 ), float4( 0.9921569, 0.9921569, 0.9921569, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.4868086 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
 				float2 texCoord43 = input.ase_texcoord4.xy * float2( 1,1 ) + float2( 0,0 );
 				float2 temp_output_52_0 = ( texCoord43 * _UVFreq );
 				float gradientNoise18 = GradientNoise(temp_output_52_0,_NoiseScales.x);
@@ -513,21 +516,23 @@ Shader "Fire2"
 				float simpleNoise44 = SimpleNoise( temp_output_52_0*_NoiseScales.y );
 				float2 appendResult45 = (float2(gradientNoise18 , simpleNoise44));
 				float2 texCoord12 = input.ase_texcoord4.xy * float2( 1,1 ) + float2( 0,0 );
-				float2 appendResult56 = (float2(0.0 , ( ( _TimeParameters.x ) * _PanSpeed )));
-				float simpleNoise57 = SimpleNoise( ( ( ( appendResult45 * _Distortion ) + ( texCoord12 + appendResult56 ) ) * _Freq )*50.0 );
+				float temp_output_47_0 = ( ( _TimeParameters.x ) * _PanSpeed );
+				float2 appendResult56 = (float2(( temp_output_47_0 * 0.05 ) , temp_output_47_0));
+				float simpleNoise57 = SimpleNoise( ( ( ( appendResult45 * _Distortion ) + ( texCoord12 + appendResult56 ) ) * _Freq )*_NoiseGenScale );
 				float temp_output_11_0_g2 = _ErosionSoftness;
 				float2 texCoord62 = input.ase_texcoord4.xy * float2( 1,1 ) + float2( 0,0 );
 				float FireSmokeLerp96 = _FireSmoke;
 				float lerpResult97 = lerp( pow( texCoord62.y , _ErosionVMaskExp ) , 1.0 , FireSmokeLerp96);
 				float lerpResult1_g2 = lerp( -temp_output_11_0_g2 , 1.0 , ( _ErosionStr * lerpResult97 ));
 				float temp_output_88_0 = saturate( ( ( saturate( simpleNoise57 ) - lerpResult1_g2 ) / temp_output_11_0_g2 ) );
-				Gradient gradient92 = NewGradient( 0, 4, 2, float4( 0.01007854, 0.00222499, 0.03529412, 0 ), float4( 0.1603774, 0.1603774, 0.1603774, 0.2023499 ), float4( 0.1981132, 0.1981132, 0.1981132, 0.6187686 ), float4( 0.3584906, 0.3584906, 0.3584906, 1 ), 0, 0, 0, 0, float2( 1, 0 ), float2( 1, 1 ), 0, 0, 0, 0, 0, 0 );
-				float4 lerpResult94 = lerp( SampleGradient( gradient25, temp_output_88_0 ) , SampleGradient( gradient92, temp_output_88_0 ) , _FireSmoke);
+				float smoothstepResult112 = smoothstep( 0.05 , 1.0 , temp_output_88_0);
+				Gradient gradient92 = NewGradient( 0, 5, 3, float4( 0.01007854, 0.00222499, 0.03529412, 0 ), float4( 0.1132075, 0.1116055, 0.1116055, 0.2023499 ), float4( 0.1981132, 0.1981132, 0.1981132, 0.454551 ), float4( 0.3584906, 0.3584906, 0.3584906, 0.8005798 ), float4( 0.4339623, 0.4339623, 0.4339623, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.1994202 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float4 lerpResult94 = lerp( SampleGradient( gradient25, smoothstepResult112 ) , SampleGradient( gradient92, temp_output_88_0 ) , _FireSmoke);
 				
 				float3 BakedAlbedo = 0;
 				float3 BakedEmission = 0;
 				float3 Color = lerpResult94.rgb;
-				float Alpha = 1;
+				float Alpha = lerpResult94.a;
 				float AlphaClipThreshold = 0.5;
 				float AlphaClipThresholdShadow = 0.5;
 
@@ -574,6 +579,7 @@ Shader "Fire2"
 			#pragma multi_compile_instancing
 			#pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
 			#define ASE_FOG 1
+			#define _SURFACE_TYPE_TRANSPARENT 1
 			#define ASE_SRP_VERSION 170003
 
 
@@ -594,13 +600,14 @@ Shader "Fire2"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
             #endif
 
-			
+			#include "Packages/com.unity.shadergraph/ShaderGraphLibrary/Functions.hlsl"
+
 
 			struct Attributes
 			{
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -613,7 +620,7 @@ Shader "Fire2"
 				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR) && defined(ASE_NEEDS_FRAG_SHADOWCOORDS)
 					float4 shadowCoord : TEXCOORD1;
 				#endif
-				
+				float4 ase_texcoord2 : TEXCOORD2;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
@@ -624,6 +631,7 @@ Shader "Fire2"
 			float2 _Freq;
 			float _Distortion;
 			float _PanSpeed;
+			float _NoiseGenScale;
 			float _ErosionSoftness;
 			float _ErosionStr;
 			float _ErosionVMaskExp;
@@ -641,6 +649,86 @@ Shader "Fire2"
 			
 
 			
+			//https://www.shadertoy.com/view/XdXGW8
+			float2 GradientNoiseDir( float2 x )
+			{
+				const float2 k = float2( 0.3183099, 0.3678794 );
+				x = x * k + k.yx;
+				return -1.0 + 2.0 * frac( 16.0 * k * frac( x.x * x.y * ( x.x + x.y ) ) );
+			}
+			
+			float GradientNoise( float2 UV, float Scale )
+			{
+				float2 p = UV * Scale;
+				float2 i = floor( p );
+				float2 f = frac( p );
+				float2 u = f * f * ( 3.0 - 2.0 * f );
+				return lerp( lerp( dot( GradientNoiseDir( i + float2( 0.0, 0.0 ) ), f - float2( 0.0, 0.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 0.0 ) ), f - float2( 1.0, 0.0 ) ), u.x ),
+						lerp( dot( GradientNoiseDir( i + float2( 0.0, 1.0 ) ), f - float2( 0.0, 1.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 1.0 ) ), f - float2( 1.0, 1.0 ) ), u.x ), u.y );
+			}
+			
+			inline float noise_randomValue (float2 uv) { return frac(sin(dot(uv, float2(12.9898, 78.233)))*43758.5453); }
+			inline float noise_interpolate (float a, float b, float t) { return (1.0-t)*a + (t*b); }
+			inline float valueNoise (float2 uv)
+			{
+				float2 i = floor(uv);
+				float2 f = frac( uv );
+				f = f* f * (3.0 - 2.0 * f);
+				uv = abs( frac(uv) - 0.5);
+				float2 c0 = i + float2( 0.0, 0.0 );
+				float2 c1 = i + float2( 1.0, 0.0 );
+				float2 c2 = i + float2( 0.0, 1.0 );
+				float2 c3 = i + float2( 1.0, 1.0 );
+				float r0 = noise_randomValue( c0 );
+				float r1 = noise_randomValue( c1 );
+				float r2 = noise_randomValue( c2 );
+				float r3 = noise_randomValue( c3 );
+				float bottomOfGrid = noise_interpolate( r0, r1, f.x );
+				float topOfGrid = noise_interpolate( r2, r3, f.x );
+				float t = noise_interpolate( bottomOfGrid, topOfGrid, f.y );
+				return t;
+			}
+			
+			float SimpleNoise(float2 UV)
+			{
+				float t = 0.0;
+				float freq = pow( 2.0, float( 0 ) );
+				float amp = pow( 0.5, float( 3 - 0 ) );
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(1));
+				amp = pow(0.5, float(3-1));
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(2));
+				amp = pow(0.5, float(3-2));
+				t += valueNoise( UV/freq )*amp;
+				return t;
+			}
+			
+			float4 SampleGradient( Gradient gradient, float time )
+			{
+				float3 color = gradient.colors[0].rgb;
+				UNITY_UNROLL
+				for (int c = 1; c < 8; c++)
+				{
+				float colorPos = saturate((time - gradient.colors[c-1].w) / ( 0.00001 + (gradient.colors[c].w - gradient.colors[c-1].w)) * step(c, gradient.colorsLength-1));
+				color = lerp(color, gradient.colors[c].rgb, lerp(colorPos, step(0.01, colorPos), gradient.type));
+				}
+				#ifndef UNITY_COLORSPACE_GAMMA
+				color = SRGBToLinear(color);
+				#endif
+				float alpha = gradient.alphas[0].x;
+				UNITY_UNROLL
+				for (int a = 1; a < 8; a++)
+				{
+				float alphaPos = saturate((time - gradient.alphas[a-1].y) / ( 0.00001 + (gradient.alphas[a].y - gradient.alphas[a-1].y)) * step(a, gradient.alphasLength-1));
+				alpha = lerp(alpha, gradient.alphas[a].x, lerp(alphaPos, step(0.01, alphaPos), gradient.type));
+				}
+				return float4(color, alpha);
+			}
+			
+
 			float3 _LightDirection;
 			float3 _LightPosition;
 
@@ -651,7 +739,10 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO( output );
 
+				output.ase_texcoord2.xy = input.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				output.ase_texcoord2.zw = 0;
 
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = input.positionOS.xyz;
@@ -708,7 +799,8 @@ Shader "Fire2"
 			{
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -725,7 +817,7 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				output.vertex = input.positionOS;
 				output.normalOS = input.normalOS;
-				
+				output.ase_texcoord = input.ase_texcoord;
 				return output;
 			}
 
@@ -764,7 +856,7 @@ Shader "Fire2"
 				Attributes output = (Attributes) 0;
 				output.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				output.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				
+				output.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -801,9 +893,29 @@ Shader "Fire2"
 					#endif
 				#endif
 
+				Gradient gradient25 = NewGradient( 0, 5, 3, float4( 0.1037736, 0.0250089, 0.01713243, 0 ), float4( 0.7075472, 0.1880461, 0.1368369, 0.3577783 ), float4( 0.8344762, 0.5460323, 0.2452056, 0.7390097 ), float4( 0.990566, 0.9862624, 0.378471, 0.9882658 ), float4( 0.9921569, 0.9921569, 0.9921569, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.4868086 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float2 texCoord43 = input.ase_texcoord2.xy * float2( 1,1 ) + float2( 0,0 );
+				float2 temp_output_52_0 = ( texCoord43 * _UVFreq );
+				float gradientNoise18 = GradientNoise(temp_output_52_0,_NoiseScales.x);
+				gradientNoise18 = gradientNoise18*0.5 + 0.5;
+				float simpleNoise44 = SimpleNoise( temp_output_52_0*_NoiseScales.y );
+				float2 appendResult45 = (float2(gradientNoise18 , simpleNoise44));
+				float2 texCoord12 = input.ase_texcoord2.xy * float2( 1,1 ) + float2( 0,0 );
+				float temp_output_47_0 = ( ( _TimeParameters.x ) * _PanSpeed );
+				float2 appendResult56 = (float2(( temp_output_47_0 * 0.05 ) , temp_output_47_0));
+				float simpleNoise57 = SimpleNoise( ( ( ( appendResult45 * _Distortion ) + ( texCoord12 + appendResult56 ) ) * _Freq )*_NoiseGenScale );
+				float temp_output_11_0_g2 = _ErosionSoftness;
+				float2 texCoord62 = input.ase_texcoord2.xy * float2( 1,1 ) + float2( 0,0 );
+				float FireSmokeLerp96 = _FireSmoke;
+				float lerpResult97 = lerp( pow( texCoord62.y , _ErosionVMaskExp ) , 1.0 , FireSmokeLerp96);
+				float lerpResult1_g2 = lerp( -temp_output_11_0_g2 , 1.0 , ( _ErosionStr * lerpResult97 ));
+				float temp_output_88_0 = saturate( ( ( saturate( simpleNoise57 ) - lerpResult1_g2 ) / temp_output_11_0_g2 ) );
+				float smoothstepResult112 = smoothstep( 0.05 , 1.0 , temp_output_88_0);
+				Gradient gradient92 = NewGradient( 0, 5, 3, float4( 0.01007854, 0.00222499, 0.03529412, 0 ), float4( 0.1132075, 0.1116055, 0.1116055, 0.2023499 ), float4( 0.1981132, 0.1981132, 0.1981132, 0.454551 ), float4( 0.3584906, 0.3584906, 0.3584906, 0.8005798 ), float4( 0.4339623, 0.4339623, 0.4339623, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.1994202 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float4 lerpResult94 = lerp( SampleGradient( gradient25, smoothstepResult112 ) , SampleGradient( gradient92, temp_output_88_0 ) , _FireSmoke);
 				
 
-				float Alpha = 1;
+				float Alpha = lerpResult94.a;
 				float AlphaClipThreshold = 0.5;
 				float AlphaClipThresholdShadow = 0.5;
 
@@ -840,6 +952,7 @@ Shader "Fire2"
 			#pragma multi_compile_instancing
 			#pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
 			#define ASE_FOG 1
+			#define _SURFACE_TYPE_TRANSPARENT 1
 			#define ASE_SRP_VERSION 170003
 
 
@@ -856,13 +969,14 @@ Shader "Fire2"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
             #endif
 
-			
+			#include "Packages/com.unity.shadergraph/ShaderGraphLibrary/Functions.hlsl"
+
 
 			struct Attributes
 			{
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -876,7 +990,7 @@ Shader "Fire2"
 				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR) && defined(ASE_NEEDS_FRAG_SHADOWCOORDS)
 				float4 shadowCoord : TEXCOORD2;
 				#endif
-				
+				float4 ase_texcoord3 : TEXCOORD3;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
@@ -887,6 +1001,7 @@ Shader "Fire2"
 			float2 _Freq;
 			float _Distortion;
 			float _PanSpeed;
+			float _NoiseGenScale;
 			float _ErosionSoftness;
 			float _ErosionStr;
 			float _ErosionVMaskExp;
@@ -904,6 +1019,86 @@ Shader "Fire2"
 			
 
 			
+			//https://www.shadertoy.com/view/XdXGW8
+			float2 GradientNoiseDir( float2 x )
+			{
+				const float2 k = float2( 0.3183099, 0.3678794 );
+				x = x * k + k.yx;
+				return -1.0 + 2.0 * frac( 16.0 * k * frac( x.x * x.y * ( x.x + x.y ) ) );
+			}
+			
+			float GradientNoise( float2 UV, float Scale )
+			{
+				float2 p = UV * Scale;
+				float2 i = floor( p );
+				float2 f = frac( p );
+				float2 u = f * f * ( 3.0 - 2.0 * f );
+				return lerp( lerp( dot( GradientNoiseDir( i + float2( 0.0, 0.0 ) ), f - float2( 0.0, 0.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 0.0 ) ), f - float2( 1.0, 0.0 ) ), u.x ),
+						lerp( dot( GradientNoiseDir( i + float2( 0.0, 1.0 ) ), f - float2( 0.0, 1.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 1.0 ) ), f - float2( 1.0, 1.0 ) ), u.x ), u.y );
+			}
+			
+			inline float noise_randomValue (float2 uv) { return frac(sin(dot(uv, float2(12.9898, 78.233)))*43758.5453); }
+			inline float noise_interpolate (float a, float b, float t) { return (1.0-t)*a + (t*b); }
+			inline float valueNoise (float2 uv)
+			{
+				float2 i = floor(uv);
+				float2 f = frac( uv );
+				f = f* f * (3.0 - 2.0 * f);
+				uv = abs( frac(uv) - 0.5);
+				float2 c0 = i + float2( 0.0, 0.0 );
+				float2 c1 = i + float2( 1.0, 0.0 );
+				float2 c2 = i + float2( 0.0, 1.0 );
+				float2 c3 = i + float2( 1.0, 1.0 );
+				float r0 = noise_randomValue( c0 );
+				float r1 = noise_randomValue( c1 );
+				float r2 = noise_randomValue( c2 );
+				float r3 = noise_randomValue( c3 );
+				float bottomOfGrid = noise_interpolate( r0, r1, f.x );
+				float topOfGrid = noise_interpolate( r2, r3, f.x );
+				float t = noise_interpolate( bottomOfGrid, topOfGrid, f.y );
+				return t;
+			}
+			
+			float SimpleNoise(float2 UV)
+			{
+				float t = 0.0;
+				float freq = pow( 2.0, float( 0 ) );
+				float amp = pow( 0.5, float( 3 - 0 ) );
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(1));
+				amp = pow(0.5, float(3-1));
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(2));
+				amp = pow(0.5, float(3-2));
+				t += valueNoise( UV/freq )*amp;
+				return t;
+			}
+			
+			float4 SampleGradient( Gradient gradient, float time )
+			{
+				float3 color = gradient.colors[0].rgb;
+				UNITY_UNROLL
+				for (int c = 1; c < 8; c++)
+				{
+				float colorPos = saturate((time - gradient.colors[c-1].w) / ( 0.00001 + (gradient.colors[c].w - gradient.colors[c-1].w)) * step(c, gradient.colorsLength-1));
+				color = lerp(color, gradient.colors[c].rgb, lerp(colorPos, step(0.01, colorPos), gradient.type));
+				}
+				#ifndef UNITY_COLORSPACE_GAMMA
+				color = SRGBToLinear(color);
+				#endif
+				float alpha = gradient.alphas[0].x;
+				UNITY_UNROLL
+				for (int a = 1; a < 8; a++)
+				{
+				float alphaPos = saturate((time - gradient.alphas[a-1].y) / ( 0.00001 + (gradient.alphas[a].y - gradient.alphas[a-1].y)) * step(a, gradient.alphasLength-1));
+				alpha = lerp(alpha, gradient.alphas[a].x, lerp(alphaPos, step(0.01, alphaPos), gradient.type));
+				}
+				return float4(color, alpha);
+			}
+			
+
 			PackedVaryings VertexFunction( Attributes input  )
 			{
 				PackedVaryings output = (PackedVaryings)0;
@@ -911,7 +1106,10 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
+				output.ase_texcoord3.xy = input.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				output.ase_texcoord3.zw = 0;
 
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = input.positionOS.xyz;
@@ -949,7 +1147,8 @@ Shader "Fire2"
 			{
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -966,7 +1165,7 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				output.vertex = input.positionOS;
 				output.normalOS = input.normalOS;
-				
+				output.ase_texcoord = input.ase_texcoord;
 				return output;
 			}
 
@@ -1005,7 +1204,7 @@ Shader "Fire2"
 				Attributes output = (Attributes) 0;
 				output.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				output.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				
+				output.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -1045,9 +1244,29 @@ Shader "Fire2"
 					#endif
 				#endif
 
+				Gradient gradient25 = NewGradient( 0, 5, 3, float4( 0.1037736, 0.0250089, 0.01713243, 0 ), float4( 0.7075472, 0.1880461, 0.1368369, 0.3577783 ), float4( 0.8344762, 0.5460323, 0.2452056, 0.7390097 ), float4( 0.990566, 0.9862624, 0.378471, 0.9882658 ), float4( 0.9921569, 0.9921569, 0.9921569, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.4868086 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float2 texCoord43 = input.ase_texcoord3.xy * float2( 1,1 ) + float2( 0,0 );
+				float2 temp_output_52_0 = ( texCoord43 * _UVFreq );
+				float gradientNoise18 = GradientNoise(temp_output_52_0,_NoiseScales.x);
+				gradientNoise18 = gradientNoise18*0.5 + 0.5;
+				float simpleNoise44 = SimpleNoise( temp_output_52_0*_NoiseScales.y );
+				float2 appendResult45 = (float2(gradientNoise18 , simpleNoise44));
+				float2 texCoord12 = input.ase_texcoord3.xy * float2( 1,1 ) + float2( 0,0 );
+				float temp_output_47_0 = ( ( _TimeParameters.x ) * _PanSpeed );
+				float2 appendResult56 = (float2(( temp_output_47_0 * 0.05 ) , temp_output_47_0));
+				float simpleNoise57 = SimpleNoise( ( ( ( appendResult45 * _Distortion ) + ( texCoord12 + appendResult56 ) ) * _Freq )*_NoiseGenScale );
+				float temp_output_11_0_g2 = _ErosionSoftness;
+				float2 texCoord62 = input.ase_texcoord3.xy * float2( 1,1 ) + float2( 0,0 );
+				float FireSmokeLerp96 = _FireSmoke;
+				float lerpResult97 = lerp( pow( texCoord62.y , _ErosionVMaskExp ) , 1.0 , FireSmokeLerp96);
+				float lerpResult1_g2 = lerp( -temp_output_11_0_g2 , 1.0 , ( _ErosionStr * lerpResult97 ));
+				float temp_output_88_0 = saturate( ( ( saturate( simpleNoise57 ) - lerpResult1_g2 ) / temp_output_11_0_g2 ) );
+				float smoothstepResult112 = smoothstep( 0.05 , 1.0 , temp_output_88_0);
+				Gradient gradient92 = NewGradient( 0, 5, 3, float4( 0.01007854, 0.00222499, 0.03529412, 0 ), float4( 0.1132075, 0.1116055, 0.1116055, 0.2023499 ), float4( 0.1981132, 0.1981132, 0.1981132, 0.454551 ), float4( 0.3584906, 0.3584906, 0.3584906, 0.8005798 ), float4( 0.4339623, 0.4339623, 0.4339623, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.1994202 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float4 lerpResult94 = lerp( SampleGradient( gradient25, smoothstepResult112 ) , SampleGradient( gradient92, temp_output_88_0 ) , _FireSmoke);
 				
 
-				float Alpha = 1;
+				float Alpha = lerpResult94.a;
 				float AlphaClipThreshold = 0.5;
 
 				#ifdef _ALPHATEST_ON
@@ -1075,6 +1294,7 @@ Shader "Fire2"
 			HLSLPROGRAM
 
 			#define ASE_FOG 1
+			#define _SURFACE_TYPE_TRANSPARENT 1
 			#define ASE_SRP_VERSION 170003
 
 
@@ -1097,20 +1317,21 @@ Shader "Fire2"
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
 
-			
+			#include "Packages/com.unity.shadergraph/ShaderGraphLibrary/Functions.hlsl"
+
 
 			struct Attributes
 			{
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 			struct PackedVaryings
 			{
 				float4 positionCS : SV_POSITION;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
@@ -1121,6 +1342,7 @@ Shader "Fire2"
 			float2 _Freq;
 			float _Distortion;
 			float _PanSpeed;
+			float _NoiseGenScale;
 			float _ErosionSoftness;
 			float _ErosionStr;
 			float _ErosionVMaskExp;
@@ -1138,6 +1360,86 @@ Shader "Fire2"
 			
 
 			
+			//https://www.shadertoy.com/view/XdXGW8
+			float2 GradientNoiseDir( float2 x )
+			{
+				const float2 k = float2( 0.3183099, 0.3678794 );
+				x = x * k + k.yx;
+				return -1.0 + 2.0 * frac( 16.0 * k * frac( x.x * x.y * ( x.x + x.y ) ) );
+			}
+			
+			float GradientNoise( float2 UV, float Scale )
+			{
+				float2 p = UV * Scale;
+				float2 i = floor( p );
+				float2 f = frac( p );
+				float2 u = f * f * ( 3.0 - 2.0 * f );
+				return lerp( lerp( dot( GradientNoiseDir( i + float2( 0.0, 0.0 ) ), f - float2( 0.0, 0.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 0.0 ) ), f - float2( 1.0, 0.0 ) ), u.x ),
+						lerp( dot( GradientNoiseDir( i + float2( 0.0, 1.0 ) ), f - float2( 0.0, 1.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 1.0 ) ), f - float2( 1.0, 1.0 ) ), u.x ), u.y );
+			}
+			
+			inline float noise_randomValue (float2 uv) { return frac(sin(dot(uv, float2(12.9898, 78.233)))*43758.5453); }
+			inline float noise_interpolate (float a, float b, float t) { return (1.0-t)*a + (t*b); }
+			inline float valueNoise (float2 uv)
+			{
+				float2 i = floor(uv);
+				float2 f = frac( uv );
+				f = f* f * (3.0 - 2.0 * f);
+				uv = abs( frac(uv) - 0.5);
+				float2 c0 = i + float2( 0.0, 0.0 );
+				float2 c1 = i + float2( 1.0, 0.0 );
+				float2 c2 = i + float2( 0.0, 1.0 );
+				float2 c3 = i + float2( 1.0, 1.0 );
+				float r0 = noise_randomValue( c0 );
+				float r1 = noise_randomValue( c1 );
+				float r2 = noise_randomValue( c2 );
+				float r3 = noise_randomValue( c3 );
+				float bottomOfGrid = noise_interpolate( r0, r1, f.x );
+				float topOfGrid = noise_interpolate( r2, r3, f.x );
+				float t = noise_interpolate( bottomOfGrid, topOfGrid, f.y );
+				return t;
+			}
+			
+			float SimpleNoise(float2 UV)
+			{
+				float t = 0.0;
+				float freq = pow( 2.0, float( 0 ) );
+				float amp = pow( 0.5, float( 3 - 0 ) );
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(1));
+				amp = pow(0.5, float(3-1));
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(2));
+				amp = pow(0.5, float(3-2));
+				t += valueNoise( UV/freq )*amp;
+				return t;
+			}
+			
+			float4 SampleGradient( Gradient gradient, float time )
+			{
+				float3 color = gradient.colors[0].rgb;
+				UNITY_UNROLL
+				for (int c = 1; c < 8; c++)
+				{
+				float colorPos = saturate((time - gradient.colors[c-1].w) / ( 0.00001 + (gradient.colors[c].w - gradient.colors[c-1].w)) * step(c, gradient.colorsLength-1));
+				color = lerp(color, gradient.colors[c].rgb, lerp(colorPos, step(0.01, colorPos), gradient.type));
+				}
+				#ifndef UNITY_COLORSPACE_GAMMA
+				color = SRGBToLinear(color);
+				#endif
+				float alpha = gradient.alphas[0].x;
+				UNITY_UNROLL
+				for (int a = 1; a < 8; a++)
+				{
+				float alphaPos = saturate((time - gradient.alphas[a-1].y) / ( 0.00001 + (gradient.alphas[a].y - gradient.alphas[a-1].y)) * step(a, gradient.alphasLength-1));
+				alpha = lerp(alpha, gradient.alphas[a].x, lerp(alphaPos, step(0.01, alphaPos), gradient.type));
+				}
+				return float4(color, alpha);
+			}
+			
+
 			int _ObjectId;
 			int _PassValue;
 
@@ -1156,7 +1458,10 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
+				output.ase_texcoord.xy = input.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				output.ase_texcoord.zw = 0;
 
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = input.positionOS.xyz;
@@ -1186,7 +1491,8 @@ Shader "Fire2"
 			{
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -1203,7 +1509,7 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				output.vertex = input.positionOS;
 				output.normalOS = input.normalOS;
-				
+				output.ase_texcoord = input.ase_texcoord;
 				return output;
 			}
 
@@ -1242,7 +1548,7 @@ Shader "Fire2"
 				Attributes output = (Attributes) 0;
 				output.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				output.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				
+				output.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -1264,9 +1570,29 @@ Shader "Fire2"
 			{
 				SurfaceDescription surfaceDescription = (SurfaceDescription)0;
 
+				Gradient gradient25 = NewGradient( 0, 5, 3, float4( 0.1037736, 0.0250089, 0.01713243, 0 ), float4( 0.7075472, 0.1880461, 0.1368369, 0.3577783 ), float4( 0.8344762, 0.5460323, 0.2452056, 0.7390097 ), float4( 0.990566, 0.9862624, 0.378471, 0.9882658 ), float4( 0.9921569, 0.9921569, 0.9921569, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.4868086 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float2 texCoord43 = input.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
+				float2 temp_output_52_0 = ( texCoord43 * _UVFreq );
+				float gradientNoise18 = GradientNoise(temp_output_52_0,_NoiseScales.x);
+				gradientNoise18 = gradientNoise18*0.5 + 0.5;
+				float simpleNoise44 = SimpleNoise( temp_output_52_0*_NoiseScales.y );
+				float2 appendResult45 = (float2(gradientNoise18 , simpleNoise44));
+				float2 texCoord12 = input.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
+				float temp_output_47_0 = ( ( _TimeParameters.x ) * _PanSpeed );
+				float2 appendResult56 = (float2(( temp_output_47_0 * 0.05 ) , temp_output_47_0));
+				float simpleNoise57 = SimpleNoise( ( ( ( appendResult45 * _Distortion ) + ( texCoord12 + appendResult56 ) ) * _Freq )*_NoiseGenScale );
+				float temp_output_11_0_g2 = _ErosionSoftness;
+				float2 texCoord62 = input.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
+				float FireSmokeLerp96 = _FireSmoke;
+				float lerpResult97 = lerp( pow( texCoord62.y , _ErosionVMaskExp ) , 1.0 , FireSmokeLerp96);
+				float lerpResult1_g2 = lerp( -temp_output_11_0_g2 , 1.0 , ( _ErosionStr * lerpResult97 ));
+				float temp_output_88_0 = saturate( ( ( saturate( simpleNoise57 ) - lerpResult1_g2 ) / temp_output_11_0_g2 ) );
+				float smoothstepResult112 = smoothstep( 0.05 , 1.0 , temp_output_88_0);
+				Gradient gradient92 = NewGradient( 0, 5, 3, float4( 0.01007854, 0.00222499, 0.03529412, 0 ), float4( 0.1132075, 0.1116055, 0.1116055, 0.2023499 ), float4( 0.1981132, 0.1981132, 0.1981132, 0.454551 ), float4( 0.3584906, 0.3584906, 0.3584906, 0.8005798 ), float4( 0.4339623, 0.4339623, 0.4339623, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.1994202 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float4 lerpResult94 = lerp( SampleGradient( gradient25, smoothstepResult112 ) , SampleGradient( gradient92, temp_output_88_0 ) , _FireSmoke);
 				
 
-				surfaceDescription.Alpha = 1;
+				surfaceDescription.Alpha = lerpResult94.a;
 				surfaceDescription.AlphaClipThreshold = 0.5;
 
 				#if _ALPHATEST_ON
@@ -1295,6 +1621,7 @@ Shader "Fire2"
 			HLSLPROGRAM
 
 			#define ASE_FOG 1
+			#define _SURFACE_TYPE_TRANSPARENT 1
 			#define ASE_SRP_VERSION 170003
 
 
@@ -1322,20 +1649,21 @@ Shader "Fire2"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
             #endif
 
-			
+			#include "Packages/com.unity.shadergraph/ShaderGraphLibrary/Functions.hlsl"
+
 
 			struct Attributes
 			{
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 			struct PackedVaryings
 			{
 				float4 positionCS : SV_POSITION;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
@@ -1346,6 +1674,7 @@ Shader "Fire2"
 			float2 _Freq;
 			float _Distortion;
 			float _PanSpeed;
+			float _NoiseGenScale;
 			float _ErosionSoftness;
 			float _ErosionStr;
 			float _ErosionVMaskExp;
@@ -1363,6 +1692,86 @@ Shader "Fire2"
 			
 
 			
+			//https://www.shadertoy.com/view/XdXGW8
+			float2 GradientNoiseDir( float2 x )
+			{
+				const float2 k = float2( 0.3183099, 0.3678794 );
+				x = x * k + k.yx;
+				return -1.0 + 2.0 * frac( 16.0 * k * frac( x.x * x.y * ( x.x + x.y ) ) );
+			}
+			
+			float GradientNoise( float2 UV, float Scale )
+			{
+				float2 p = UV * Scale;
+				float2 i = floor( p );
+				float2 f = frac( p );
+				float2 u = f * f * ( 3.0 - 2.0 * f );
+				return lerp( lerp( dot( GradientNoiseDir( i + float2( 0.0, 0.0 ) ), f - float2( 0.0, 0.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 0.0 ) ), f - float2( 1.0, 0.0 ) ), u.x ),
+						lerp( dot( GradientNoiseDir( i + float2( 0.0, 1.0 ) ), f - float2( 0.0, 1.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 1.0 ) ), f - float2( 1.0, 1.0 ) ), u.x ), u.y );
+			}
+			
+			inline float noise_randomValue (float2 uv) { return frac(sin(dot(uv, float2(12.9898, 78.233)))*43758.5453); }
+			inline float noise_interpolate (float a, float b, float t) { return (1.0-t)*a + (t*b); }
+			inline float valueNoise (float2 uv)
+			{
+				float2 i = floor(uv);
+				float2 f = frac( uv );
+				f = f* f * (3.0 - 2.0 * f);
+				uv = abs( frac(uv) - 0.5);
+				float2 c0 = i + float2( 0.0, 0.0 );
+				float2 c1 = i + float2( 1.0, 0.0 );
+				float2 c2 = i + float2( 0.0, 1.0 );
+				float2 c3 = i + float2( 1.0, 1.0 );
+				float r0 = noise_randomValue( c0 );
+				float r1 = noise_randomValue( c1 );
+				float r2 = noise_randomValue( c2 );
+				float r3 = noise_randomValue( c3 );
+				float bottomOfGrid = noise_interpolate( r0, r1, f.x );
+				float topOfGrid = noise_interpolate( r2, r3, f.x );
+				float t = noise_interpolate( bottomOfGrid, topOfGrid, f.y );
+				return t;
+			}
+			
+			float SimpleNoise(float2 UV)
+			{
+				float t = 0.0;
+				float freq = pow( 2.0, float( 0 ) );
+				float amp = pow( 0.5, float( 3 - 0 ) );
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(1));
+				amp = pow(0.5, float(3-1));
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(2));
+				amp = pow(0.5, float(3-2));
+				t += valueNoise( UV/freq )*amp;
+				return t;
+			}
+			
+			float4 SampleGradient( Gradient gradient, float time )
+			{
+				float3 color = gradient.colors[0].rgb;
+				UNITY_UNROLL
+				for (int c = 1; c < 8; c++)
+				{
+				float colorPos = saturate((time - gradient.colors[c-1].w) / ( 0.00001 + (gradient.colors[c].w - gradient.colors[c-1].w)) * step(c, gradient.colorsLength-1));
+				color = lerp(color, gradient.colors[c].rgb, lerp(colorPos, step(0.01, colorPos), gradient.type));
+				}
+				#ifndef UNITY_COLORSPACE_GAMMA
+				color = SRGBToLinear(color);
+				#endif
+				float alpha = gradient.alphas[0].x;
+				UNITY_UNROLL
+				for (int a = 1; a < 8; a++)
+				{
+				float alphaPos = saturate((time - gradient.alphas[a-1].y) / ( 0.00001 + (gradient.alphas[a].y - gradient.alphas[a-1].y)) * step(a, gradient.alphasLength-1));
+				alpha = lerp(alpha, gradient.alphas[a].x, lerp(alphaPos, step(0.01, alphaPos), gradient.type));
+				}
+				return float4(color, alpha);
+			}
+			
+
 			float4 _SelectionID;
 
 			struct SurfaceDescription
@@ -1380,7 +1789,10 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
+				output.ase_texcoord.xy = input.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				output.ase_texcoord.zw = 0;
 
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = input.positionOS.xyz;
@@ -1408,7 +1820,8 @@ Shader "Fire2"
 			{
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -1425,7 +1838,7 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				output.vertex = input.positionOS;
 				output.normalOS = input.normalOS;
-				
+				output.ase_texcoord = input.ase_texcoord;
 				return output;
 			}
 
@@ -1464,7 +1877,7 @@ Shader "Fire2"
 				Attributes output = (Attributes) 0;
 				output.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				output.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				
+				output.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -1486,9 +1899,29 @@ Shader "Fire2"
 			{
 				SurfaceDescription surfaceDescription = (SurfaceDescription)0;
 
+				Gradient gradient25 = NewGradient( 0, 5, 3, float4( 0.1037736, 0.0250089, 0.01713243, 0 ), float4( 0.7075472, 0.1880461, 0.1368369, 0.3577783 ), float4( 0.8344762, 0.5460323, 0.2452056, 0.7390097 ), float4( 0.990566, 0.9862624, 0.378471, 0.9882658 ), float4( 0.9921569, 0.9921569, 0.9921569, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.4868086 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float2 texCoord43 = input.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
+				float2 temp_output_52_0 = ( texCoord43 * _UVFreq );
+				float gradientNoise18 = GradientNoise(temp_output_52_0,_NoiseScales.x);
+				gradientNoise18 = gradientNoise18*0.5 + 0.5;
+				float simpleNoise44 = SimpleNoise( temp_output_52_0*_NoiseScales.y );
+				float2 appendResult45 = (float2(gradientNoise18 , simpleNoise44));
+				float2 texCoord12 = input.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
+				float temp_output_47_0 = ( ( _TimeParameters.x ) * _PanSpeed );
+				float2 appendResult56 = (float2(( temp_output_47_0 * 0.05 ) , temp_output_47_0));
+				float simpleNoise57 = SimpleNoise( ( ( ( appendResult45 * _Distortion ) + ( texCoord12 + appendResult56 ) ) * _Freq )*_NoiseGenScale );
+				float temp_output_11_0_g2 = _ErosionSoftness;
+				float2 texCoord62 = input.ase_texcoord.xy * float2( 1,1 ) + float2( 0,0 );
+				float FireSmokeLerp96 = _FireSmoke;
+				float lerpResult97 = lerp( pow( texCoord62.y , _ErosionVMaskExp ) , 1.0 , FireSmokeLerp96);
+				float lerpResult1_g2 = lerp( -temp_output_11_0_g2 , 1.0 , ( _ErosionStr * lerpResult97 ));
+				float temp_output_88_0 = saturate( ( ( saturate( simpleNoise57 ) - lerpResult1_g2 ) / temp_output_11_0_g2 ) );
+				float smoothstepResult112 = smoothstep( 0.05 , 1.0 , temp_output_88_0);
+				Gradient gradient92 = NewGradient( 0, 5, 3, float4( 0.01007854, 0.00222499, 0.03529412, 0 ), float4( 0.1132075, 0.1116055, 0.1116055, 0.2023499 ), float4( 0.1981132, 0.1981132, 0.1981132, 0.454551 ), float4( 0.3584906, 0.3584906, 0.3584906, 0.8005798 ), float4( 0.4339623, 0.4339623, 0.4339623, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.1994202 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float4 lerpResult94 = lerp( SampleGradient( gradient25, smoothstepResult112 ) , SampleGradient( gradient92, temp_output_88_0 ) , _FireSmoke);
 				
 
-				surfaceDescription.Alpha = 1;
+				surfaceDescription.Alpha = lerpResult94.a;
 				surfaceDescription.AlphaClipThreshold = 0.5;
 
 				#if _ALPHATEST_ON
@@ -1523,6 +1956,7 @@ Shader "Fire2"
         	#pragma multi_compile_instancing
         	#pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
         	#define ASE_FOG 1
+        	#define _SURFACE_TYPE_TRANSPARENT 1
         	#define ASE_SRP_VERSION 170003
 
 
@@ -1553,13 +1987,14 @@ Shader "Fire2"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
             #endif
 
-			
+			#include "Packages/com.unity.shadergraph/ShaderGraphLibrary/Functions.hlsl"
+
 
 			struct Attributes
 			{
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -1568,7 +2003,7 @@ Shader "Fire2"
 				float4 positionCS : SV_POSITION;
 				float4 clipPosV : TEXCOORD0;
 				float3 normalWS : TEXCOORD1;
-				
+				float4 ase_texcoord2 : TEXCOORD2;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
@@ -1579,6 +2014,7 @@ Shader "Fire2"
 			float2 _Freq;
 			float _Distortion;
 			float _PanSpeed;
+			float _NoiseGenScale;
 			float _ErosionSoftness;
 			float _ErosionStr;
 			float _ErosionVMaskExp;
@@ -1596,6 +2032,86 @@ Shader "Fire2"
 			
 
 			
+			//https://www.shadertoy.com/view/XdXGW8
+			float2 GradientNoiseDir( float2 x )
+			{
+				const float2 k = float2( 0.3183099, 0.3678794 );
+				x = x * k + k.yx;
+				return -1.0 + 2.0 * frac( 16.0 * k * frac( x.x * x.y * ( x.x + x.y ) ) );
+			}
+			
+			float GradientNoise( float2 UV, float Scale )
+			{
+				float2 p = UV * Scale;
+				float2 i = floor( p );
+				float2 f = frac( p );
+				float2 u = f * f * ( 3.0 - 2.0 * f );
+				return lerp( lerp( dot( GradientNoiseDir( i + float2( 0.0, 0.0 ) ), f - float2( 0.0, 0.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 0.0 ) ), f - float2( 1.0, 0.0 ) ), u.x ),
+						lerp( dot( GradientNoiseDir( i + float2( 0.0, 1.0 ) ), f - float2( 0.0, 1.0 ) ),
+						dot( GradientNoiseDir( i + float2( 1.0, 1.0 ) ), f - float2( 1.0, 1.0 ) ), u.x ), u.y );
+			}
+			
+			inline float noise_randomValue (float2 uv) { return frac(sin(dot(uv, float2(12.9898, 78.233)))*43758.5453); }
+			inline float noise_interpolate (float a, float b, float t) { return (1.0-t)*a + (t*b); }
+			inline float valueNoise (float2 uv)
+			{
+				float2 i = floor(uv);
+				float2 f = frac( uv );
+				f = f* f * (3.0 - 2.0 * f);
+				uv = abs( frac(uv) - 0.5);
+				float2 c0 = i + float2( 0.0, 0.0 );
+				float2 c1 = i + float2( 1.0, 0.0 );
+				float2 c2 = i + float2( 0.0, 1.0 );
+				float2 c3 = i + float2( 1.0, 1.0 );
+				float r0 = noise_randomValue( c0 );
+				float r1 = noise_randomValue( c1 );
+				float r2 = noise_randomValue( c2 );
+				float r3 = noise_randomValue( c3 );
+				float bottomOfGrid = noise_interpolate( r0, r1, f.x );
+				float topOfGrid = noise_interpolate( r2, r3, f.x );
+				float t = noise_interpolate( bottomOfGrid, topOfGrid, f.y );
+				return t;
+			}
+			
+			float SimpleNoise(float2 UV)
+			{
+				float t = 0.0;
+				float freq = pow( 2.0, float( 0 ) );
+				float amp = pow( 0.5, float( 3 - 0 ) );
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(1));
+				amp = pow(0.5, float(3-1));
+				t += valueNoise( UV/freq )*amp;
+				freq = pow(2.0, float(2));
+				amp = pow(0.5, float(3-2));
+				t += valueNoise( UV/freq )*amp;
+				return t;
+			}
+			
+			float4 SampleGradient( Gradient gradient, float time )
+			{
+				float3 color = gradient.colors[0].rgb;
+				UNITY_UNROLL
+				for (int c = 1; c < 8; c++)
+				{
+				float colorPos = saturate((time - gradient.colors[c-1].w) / ( 0.00001 + (gradient.colors[c].w - gradient.colors[c-1].w)) * step(c, gradient.colorsLength-1));
+				color = lerp(color, gradient.colors[c].rgb, lerp(colorPos, step(0.01, colorPos), gradient.type));
+				}
+				#ifndef UNITY_COLORSPACE_GAMMA
+				color = SRGBToLinear(color);
+				#endif
+				float alpha = gradient.alphas[0].x;
+				UNITY_UNROLL
+				for (int a = 1; a < 8; a++)
+				{
+				float alphaPos = saturate((time - gradient.alphas[a-1].y) / ( 0.00001 + (gradient.alphas[a].y - gradient.alphas[a-1].y)) * step(a, gradient.alphasLength-1));
+				alpha = lerp(alpha, gradient.alphas[a].x, lerp(alphaPos, step(0.01, alphaPos), gradient.type));
+				}
+				return float4(color, alpha);
+			}
+			
+
 			struct SurfaceDescription
 			{
 				float Alpha;
@@ -1611,7 +2127,10 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
+				output.ase_texcoord2.xy = input.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				output.ase_texcoord2.zw = 0;
 
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = input.positionOS.xyz;
@@ -1642,7 +2161,8 @@ Shader "Fire2"
 			{
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -1659,7 +2179,7 @@ Shader "Fire2"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				output.vertex = input.positionOS;
 				output.normalOS = input.normalOS;
-				
+				output.ase_texcoord = input.ase_texcoord;
 				return output;
 			}
 
@@ -1698,7 +2218,7 @@ Shader "Fire2"
 				Attributes output = (Attributes) 0;
 				output.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				output.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				
+				output.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -1726,9 +2246,29 @@ Shader "Fire2"
 				float4 ClipPos = input.clipPosV;
 				float4 ScreenPos = ComputeScreenPos( input.clipPosV );
 
+				Gradient gradient25 = NewGradient( 0, 5, 3, float4( 0.1037736, 0.0250089, 0.01713243, 0 ), float4( 0.7075472, 0.1880461, 0.1368369, 0.3577783 ), float4( 0.8344762, 0.5460323, 0.2452056, 0.7390097 ), float4( 0.990566, 0.9862624, 0.378471, 0.9882658 ), float4( 0.9921569, 0.9921569, 0.9921569, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.4868086 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float2 texCoord43 = input.ase_texcoord2.xy * float2( 1,1 ) + float2( 0,0 );
+				float2 temp_output_52_0 = ( texCoord43 * _UVFreq );
+				float gradientNoise18 = GradientNoise(temp_output_52_0,_NoiseScales.x);
+				gradientNoise18 = gradientNoise18*0.5 + 0.5;
+				float simpleNoise44 = SimpleNoise( temp_output_52_0*_NoiseScales.y );
+				float2 appendResult45 = (float2(gradientNoise18 , simpleNoise44));
+				float2 texCoord12 = input.ase_texcoord2.xy * float2( 1,1 ) + float2( 0,0 );
+				float temp_output_47_0 = ( ( _TimeParameters.x ) * _PanSpeed );
+				float2 appendResult56 = (float2(( temp_output_47_0 * 0.05 ) , temp_output_47_0));
+				float simpleNoise57 = SimpleNoise( ( ( ( appendResult45 * _Distortion ) + ( texCoord12 + appendResult56 ) ) * _Freq )*_NoiseGenScale );
+				float temp_output_11_0_g2 = _ErosionSoftness;
+				float2 texCoord62 = input.ase_texcoord2.xy * float2( 1,1 ) + float2( 0,0 );
+				float FireSmokeLerp96 = _FireSmoke;
+				float lerpResult97 = lerp( pow( texCoord62.y , _ErosionVMaskExp ) , 1.0 , FireSmokeLerp96);
+				float lerpResult1_g2 = lerp( -temp_output_11_0_g2 , 1.0 , ( _ErosionStr * lerpResult97 ));
+				float temp_output_88_0 = saturate( ( ( saturate( simpleNoise57 ) - lerpResult1_g2 ) / temp_output_11_0_g2 ) );
+				float smoothstepResult112 = smoothstep( 0.05 , 1.0 , temp_output_88_0);
+				Gradient gradient92 = NewGradient( 0, 5, 3, float4( 0.01007854, 0.00222499, 0.03529412, 0 ), float4( 0.1132075, 0.1116055, 0.1116055, 0.2023499 ), float4( 0.1981132, 0.1981132, 0.1981132, 0.454551 ), float4( 0.3584906, 0.3584906, 0.3584906, 0.8005798 ), float4( 0.4339623, 0.4339623, 0.4339623, 1 ), 0, 0, 0, float2( 0, 0 ), float2( 1, 0.1994202 ), float2( 1, 1 ), 0, 0, 0, 0, 0 );
+				float4 lerpResult94 = lerp( SampleGradient( gradient25, smoothstepResult112 ) , SampleGradient( gradient92, temp_output_88_0 ) , _FireSmoke);
 				
 
-				float Alpha = 1;
+				float Alpha = lerpResult94.a;
 				float AlphaClipThreshold = 0.5;
 
 				#if _ALPHATEST_ON
@@ -1769,59 +2309,66 @@ Shader "Fire2"
 }
 /*ASEBEGIN
 Version=19603
-Node;AmplifyShaderEditor.CommentaryNode;101;-2160,-624;Inherit;False;1348;607.95;Offset Noise;9;43;52;53;45;32;33;18;44;67;;1,1,1,1;0;0
-Node;AmplifyShaderEditor.CommentaryNode;100;-1568,0;Inherit;False;756;434.95;Panning UV;6;12;51;56;21;47;48;;1,1,1,1;0;0
-Node;AmplifyShaderEditor.CommentaryNode;99;1392,-432;Inherit;False;916;610.95;Colour;7;27;93;94;95;96;25;92;;1,1,1,1;0;0
+Node;AmplifyShaderEditor.CommentaryNode;100;-1799,0;Inherit;False;1010;610.95;Panning UV;7;47;48;21;106;56;51;12;;1,1,1,1;0;0
+Node;AmplifyShaderEditor.CommentaryNode;101;-2160,-624;Inherit;False;1348;607.95;Offset Noise;9;52;53;45;32;33;18;44;67;109;;1,1,1,1;0;0
+Node;AmplifyShaderEditor.TimeNode;21;-1776,352;Inherit;False;0;5;FLOAT4;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.RangedFloatNode;48;-1712,496;Inherit;False;Property;_PanSpeed;PanSpeed;5;0;Create;True;0;0;0;False;0;False;0.2;2.5;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.TextureCoordinatesNode;43;-2624,-416;Inherit;False;0;-1;2;3;2;SAMPLER2D;;False;0;FLOAT2;1,1;False;1;FLOAT2;0,0;False;5;FLOAT2;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.Vector2Node;53;-2064,-304;Inherit;False;Property;_UVFreq;UVFreq;6;0;Create;True;0;0;0;False;0;False;1,1;1,1;0;3;FLOAT2;0;FLOAT;1;FLOAT;2
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;47;-1552,368;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;52;-1872,-400;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.Vector2Node;67;-1888,-576;Inherit;False;Property;_NoiseScales;NoiseScales;7;0;Create;True;0;0;0;False;0;False;9,20;9,20;0;3;FLOAT2;0;FLOAT;1;FLOAT;2
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;106;-1280,224;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0.05;False;1;FLOAT;0
+Node;AmplifyShaderEditor.NoiseGeneratorNode;18;-1680,-480;Inherit;True;Gradient;True;False;2;0;FLOAT2;0,0;False;1;FLOAT;9;False;1;FLOAT;0
+Node;AmplifyShaderEditor.NoiseGeneratorNode;44;-1680,-272;Inherit;True;Simple;True;False;2;0;FLOAT2;0,0;False;1;FLOAT;20;False;1;FLOAT;0
+Node;AmplifyShaderEditor.CommentaryNode;99;1536,-432;Inherit;False;916;610.95;Colour;7;27;93;94;95;96;25;92;;1,1,1,1;0;0
+Node;AmplifyShaderEditor.DynamicAppendNode;56;-1136,224;Inherit;False;FLOAT2;4;0;FLOAT;-0.2;False;1;FLOAT;0;False;2;FLOAT;0;False;3;FLOAT;0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.DynamicAppendNode;45;-1392,-496;Inherit;True;FLOAT2;4;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;3;FLOAT;0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.RangedFloatNode;95;1856,16;Inherit;False;Property;_FireSmoke;FireSmoke;12;0;Create;True;0;0;0;False;0;False;0;0;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.TextureCoordinatesNode;12;-1216,64;Inherit;False;0;-1;2;3;2;SAMPLER2D;;False;0;FLOAT2;1,1;False;1;FLOAT2;0,0;False;5;FLOAT2;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.RangedFloatNode;32;-1344,-288;Inherit;False;Property;_Distortion;Distortion;3;0;Create;True;0;0;0;False;0;False;0.12;0.12;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RegisterLocalVarNode;96;2176,64;Inherit;False;FireSmokeLerp;-1;True;1;0;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleAddOpNode;51;-960,64;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.TextureCoordinatesNode;62;-16,48;Inherit;False;0;-1;2;3;2;SAMPLER2D;;False;0;FLOAT2;1,1;False;1;FLOAT2;0,0;False;5;FLOAT2;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.RangedFloatNode;69;0,192;Inherit;False;Property;_ErosionVMaskExp;ErosionVMaskExp;4;0;Create;True;0;0;0;False;0;False;0.5;0;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;33;-944,-480;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT;0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.SimpleAddOpNode;49;-752,-96;Inherit;True;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.Vector2Node;60;-720,128;Inherit;False;Property;_Freq;Freq;0;0;Create;True;0;0;0;False;0;False;1,0.2;1,0.2;0;3;FLOAT2;0;FLOAT;1;FLOAT;2
+Node;AmplifyShaderEditor.PowerNode;68;272,96;Inherit;False;False;2;0;FLOAT;0;False;1;FLOAT;2;False;1;FLOAT;0
+Node;AmplifyShaderEditor.GetLocalVarNode;98;128,288;Inherit;False;96;FireSmokeLerp;1;0;OBJECT;;False;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;58;-480,-80;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.LerpOp;97;480,160;Inherit;False;3;0;FLOAT;0;False;1;FLOAT;1;False;2;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;102;208,0;Inherit;False;Property;_ErosionStr;Erosion Str;1;0;Create;True;0;0;0;False;0;False;1;0;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;104;-459.9288,313.379;Inherit;False;Property;_NoiseGenScale;NoiseGenScale;11;0;Create;True;0;0;0;False;0;False;50;50;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;63;656,416;Inherit;False;Property;_ErosionSoftness;ErosionSoftness;2;0;Create;True;0;0;0;False;0;False;0;0;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;103;672,0;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.NoiseGeneratorNode;57;-288,-80;Inherit;True;Simple;True;False;2;0;FLOAT2;0,0;False;1;FLOAT;50;False;1;FLOAT;0
+Node;AmplifyShaderEditor.FunctionNode;88;912,-80;Inherit;True;ValueErosion;-1;;2;52868018911d0d14d8a5a9c7ec1be11a;0;3;9;FLOAT;0;False;10;FLOAT;0;False;11;FLOAT;0.5;False;1;FLOAT;0
+Node;AmplifyShaderEditor.GradientNode;25;1616,-384;Inherit;False;0;5;3;0.1037736,0.0250089,0.01713243,0;0.7075472,0.1880461,0.1368369,0.3577783;0.8344762,0.5460323,0.2452056,0.7390097;0.990566,0.9862624,0.378471,0.9882658;0.9921569,0.9921569,0.9921569,1;0,0;1,0.4868086;1,1;0;1;OBJECT;0
+Node;AmplifyShaderEditor.GradientNode;92;1584,-176;Inherit;False;0;5;3;0.01007854,0.00222499,0.03529412,0;0.1132075,0.1116055,0.1116055,0.2023499;0.1981132,0.1981132,0.1981132,0.454551;0.3584906,0.3584906,0.3584906,0.8005798;0.4339623,0.4339623,0.4339623,1;0,0;1,0.1994202;1,1;0;1;OBJECT;0
+Node;AmplifyShaderEditor.SmoothstepOpNode;112;1264,16;Inherit;True;3;0;FLOAT;0;False;1;FLOAT;0.05;False;2;FLOAT;1;False;1;FLOAT;0
+Node;AmplifyShaderEditor.GradientSampleNode;27;1856,-384;Inherit;True;2;0;OBJECT;;False;1;FLOAT;0;False;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.GradientSampleNode;93;1840,-176;Inherit;True;2;0;OBJECT;;False;1;FLOAT;0;False;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
 Node;AmplifyShaderEditor.CommentaryNode;86;-82,574;Inherit;False;2004;882.95;Displacement;14;83;85;84;73;82;74;80;72;75;77;76;79;78;87;;1,1,1,1;0;0
+Node;AmplifyShaderEditor.LerpOp;94;2272,-304;Inherit;False;3;0;COLOR;0,0,0,0;False;1;COLOR;0,0,0,0;False;2;FLOAT;0;False;1;COLOR;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;111;-1968.97,22.52747;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0.85,0.9;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.SimpleAddOpNode;110;-2336,-240;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.TFHCRemapNode;109;-1152,-512;Inherit;False;5;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;2;FLOAT2;1,1;False;3;FLOAT2;-0.5,-0.5;False;4;FLOAT2;0.5,0.5;False;1;FLOAT2;0
 Node;AmplifyShaderEditor.TimeNode;83;256,880;Inherit;False;0;5;FLOAT4;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.RangedFloatNode;85;224,1024;Inherit;False;Property;_DisplacementPnnerSpeed;DisplacementPnnerSpeed;9;0;Create;True;0;0;0;False;0;False;-3;-3;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;85;224,1024;Inherit;False;Property;_DisplacementPnnerSpeed;DisplacementPnnerSpeed;10;0;Create;True;0;0;0;False;0;False;-3;-3;0;0;0;1;FLOAT;0
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;84;480,896;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
 Node;AmplifyShaderEditor.WorldPosInputsNode;73;592,736;Inherit;False;0;4;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3
 Node;AmplifyShaderEditor.DynamicAppendNode;82;640,880;Inherit;False;FLOAT3;4;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;3;FLOAT;0;False;1;FLOAT3;0
-Node;AmplifyShaderEditor.RangedFloatNode;74;784,1104;Inherit;False;Property;_OffsetNoisScalar;OffsetNoisScalar;7;0;Create;True;0;0;0;False;0;False;1;1;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;74;784,1104;Inherit;False;Property;_OffsetNoisScalar;OffsetNoisScalar;8;0;Create;True;0;0;0;False;0;False;1;1;0;0;0;1;FLOAT;0
 Node;AmplifyShaderEditor.SimpleAddOpNode;80;864,752;Inherit;False;2;2;0;FLOAT3;0,0,0;False;1;FLOAT3;0,0,0;False;1;FLOAT3;0
 Node;AmplifyShaderEditor.NoiseGeneratorNode;72;1024,752;Inherit;True;Simplex3D;True;False;2;0;FLOAT3;0,0,0;False;1;FLOAT;1;False;1;FLOAT;0
 Node;AmplifyShaderEditor.TFHCRemapNode;77;1280,752;Inherit;False;5;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;1;False;3;FLOAT;-1;False;4;FLOAT;1;False;1;FLOAT;0
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;76;1504,784;Inherit;True;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;78;1520,1008;Inherit;False;Property;_Displacement;Displacement;8;0;Create;True;0;0;0;False;0;False;0;0;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;78;1520,1008;Inherit;False;Property;_Displacement;Displacement;9;0;Create;True;0;0;0;False;0;False;0;0;0;0;0;1;FLOAT;0
 Node;AmplifyShaderEditor.NormalVertexDataNode;87;1520,1136;Inherit;False;0;5;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;79;1776,816;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
 Node;AmplifyShaderEditor.TextureCoordinatesNode;75;1072,1104;Inherit;False;0;-1;2;3;2;SAMPLER2D;;False;0;FLOAT2;1,1;False;1;FLOAT2;0,0;False;5;FLOAT2;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.GradientSampleNode;27;1712,-384;Inherit;True;2;0;OBJECT;;False;1;FLOAT;0;False;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.GradientSampleNode;93;1696,-176;Inherit;True;2;0;OBJECT;;False;1;FLOAT;0;False;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.LerpOp;94;2128,-304;Inherit;False;3;0;COLOR;0,0,0,0;False;1;COLOR;0,0,0,0;False;2;FLOAT;0;False;1;COLOR;0
-Node;AmplifyShaderEditor.RangedFloatNode;95;1712,16;Inherit;False;Property;_FireSmoke;FireSmoke;10;0;Create;True;0;0;0;False;0;False;0;0;0;1;0;1;FLOAT;0
-Node;AmplifyShaderEditor.RegisterLocalVarNode;96;2032,64;Inherit;False;FireSmokeLerp;-1;True;1;0;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.GradientNode;25;1472,-384;Inherit;False;0;5;2;0.01007854,0.00222499,0.03529412,0;0.7075472,0.1880461,0.1368369,0.4398871;0.8344762,0.5460323,0.2452056,0.7390097;0.990566,0.9862624,0.378471,0.9648127;0.9921569,0.9921569,0.9921569,1;1,0;1,1;0;1;OBJECT;0
-Node;AmplifyShaderEditor.GradientNode;92;1440,-176;Inherit;False;0;4;2;0.01007854,0.00222499,0.03529412,0;0.1603774,0.1603774,0.1603774,0.2023499;0.1981132,0.1981132,0.1981132,0.6187686;0.3584906,0.3584906,0.3584906,1;1,0;1,1;0;1;OBJECT;0
-Node;AmplifyShaderEditor.TextureCoordinatesNode;12;-1216,64;Inherit;False;0;-1;2;3;2;SAMPLER2D;;False;0;FLOAT2;1,1;False;1;FLOAT2;0,0;False;5;FLOAT2;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SimpleAddOpNode;51;-960,64;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.DynamicAppendNode;56;-1136,224;Inherit;False;FLOAT2;4;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;3;FLOAT;0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.TimeNode;21;-1520,192;Inherit;False;0;5;FLOAT4;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;47;-1296,208;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;48;-1456,336;Inherit;False;Property;_PanSpeed;PanSpeed;3;0;Create;True;0;0;0;False;0;False;0.2;2.5;0;0;0;1;FLOAT;0
-Node;AmplifyShaderEditor.TextureCoordinatesNode;43;-2112,-416;Inherit;False;0;-1;2;3;2;SAMPLER2D;;False;0;FLOAT2;1,1;False;1;FLOAT2;0,0;False;5;FLOAT2;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;52;-1872,-400;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.Vector2Node;53;-2064,-304;Inherit;False;Property;_UVFreq;UVFreq;4;0;Create;True;0;0;0;False;0;False;1,1;1,1;0;3;FLOAT2;0;FLOAT;1;FLOAT;2
-Node;AmplifyShaderEditor.DynamicAppendNode;45;-1392,-496;Inherit;True;FLOAT2;4;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;3;FLOAT;0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.RangedFloatNode;32;-1344,-288;Inherit;False;Property;_Distortion;Distortion;2;0;Create;True;0;0;0;False;0;False;0.4;-0.4;0;0;0;1;FLOAT;0
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;33;-992,-480;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT;0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.NoiseGeneratorNode;18;-1680,-480;Inherit;True;Gradient;True;False;2;0;FLOAT2;0,0;False;1;FLOAT;9;False;1;FLOAT;0
-Node;AmplifyShaderEditor.NoiseGeneratorNode;44;-1680,-272;Inherit;True;Simple;True;False;2;0;FLOAT2;0,0;False;1;FLOAT;20;False;1;FLOAT;0
-Node;AmplifyShaderEditor.Vector2Node;67;-1888,-576;Inherit;False;Property;_NoiseScales;NoiseScales;6;0;Create;True;0;0;0;False;0;False;9,20;9,20;0;3;FLOAT2;0;FLOAT;1;FLOAT;2
-Node;AmplifyShaderEditor.SimpleAddOpNode;49;-752,-96;Inherit;True;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.Vector2Node;60;-720,128;Inherit;False;Property;_Freq;Freq;5;0;Create;True;0;0;0;False;0;False;1,0.2;1,0.2;0;3;FLOAT2;0;FLOAT;1;FLOAT;2
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;58;-480,-80;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT2;0,0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.NoiseGeneratorNode;57;-288,-80;Inherit;True;Simple;True;False;2;0;FLOAT2;0,0;False;1;FLOAT;50;False;1;FLOAT;0
-Node;AmplifyShaderEditor.FunctionNode;88;928,-80;Inherit;True;ValueErosion;-1;;2;52868018911d0d14d8a5a9c7ec1be11a;0;3;9;FLOAT;0;False;10;FLOAT;0;False;11;FLOAT;0.5;False;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;63;656,416;Inherit;False;Property;_ErosionSoftness;ErosionSoftness;0;0;Create;True;0;0;0;False;0;False;0;0;0;0;0;1;FLOAT;0
-Node;AmplifyShaderEditor.PowerNode;68;272,96;Inherit;False;False;2;0;FLOAT;0;False;1;FLOAT;2;False;1;FLOAT;0
-Node;AmplifyShaderEditor.TextureCoordinatesNode;62;-16,48;Inherit;False;0;-1;2;3;2;SAMPLER2D;;False;0;FLOAT2;1,1;False;1;FLOAT2;0,0;False;5;FLOAT2;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.RangedFloatNode;69;0,192;Inherit;False;Property;_ErosionVMaskExp;ErosionVMaskExp;1;0;Create;True;0;0;0;False;0;False;0.5;0;0;0;0;1;FLOAT;0
-Node;AmplifyShaderEditor.GetLocalVarNode;98;128,288;Inherit;False;96;FireSmokeLerp;1;0;OBJECT;;False;1;FLOAT;0
-Node;AmplifyShaderEditor.LerpOp;97;480,160;Inherit;False;3;0;FLOAT;0;False;1;FLOAT;1;False;2;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;103;672,0;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;102;208,0;Inherit;False;Property;_ErosionStr;Erosion Str;11;0;Create;True;0;0;0;False;0;False;1;0;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.BreakToComponentsNode;105;2576,-208;Inherit;False;COLOR;1;0;COLOR;0,0,0,0;False;16;FLOAT;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT;5;FLOAT;6;FLOAT;7;FLOAT;8;FLOAT;9;FLOAT;10;FLOAT;11;FLOAT;12;FLOAT;13;FLOAT;14;FLOAT;15
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;0;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphUnlitGUI;0;13;New Amplify Shader;2992e84f91cbeb14eab234972e07ea9d;True;ExtraPrePass;0;0;ExtraPrePass;5;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;False;False;False;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Unlit;True;5;True;12;all;0;False;True;1;1;False;;0;False;;0;1;False;;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;0;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;2;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphUnlitGUI;0;13;New Amplify Shader;2992e84f91cbeb14eab234972e07ea9d;True;ShadowCaster;0;2;ShadowCaster;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;False;False;False;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Unlit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;False;False;True;False;False;False;False;0;False;;False;False;False;False;False;False;False;False;False;True;1;False;;True;3;False;;False;True;1;LightMode=ShadowCaster;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;3;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphUnlitGUI;0;13;New Amplify Shader;2992e84f91cbeb14eab234972e07ea9d;True;DepthOnly;0;3;DepthOnly;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;False;False;False;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Unlit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;False;False;True;False;False;False;False;0;False;;False;False;False;False;False;False;False;False;False;True;1;False;;False;False;True;1;LightMode=DepthOnly;False;False;0;;0;0;Standard;0;False;0
@@ -1832,7 +2379,52 @@ Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;7;0,0;Float;False;False;-1;
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;8;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphUnlitGUI;0;13;New Amplify Shader;2992e84f91cbeb14eab234972e07ea9d;True;DepthNormals;0;8;DepthNormals;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;False;False;False;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Unlit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;True;1;False;;True;3;False;;False;True;1;LightMode=DepthNormalsOnly;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;9;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphUnlitGUI;0;13;New Amplify Shader;2992e84f91cbeb14eab234972e07ea9d;True;DepthNormalsOnly;0;9;DepthNormalsOnly;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;False;False;False;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Unlit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;True;1;False;;True;3;False;;False;True;1;LightMode=DepthNormalsOnly;False;True;9;d3d11;metal;vulkan;xboxone;xboxseries;playstation;ps4;ps5;switch;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;10;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphUnlitGUI;0;13;New Amplify Shader;2992e84f91cbeb14eab234972e07ea9d;True;MotionVectors;0;10;MotionVectors;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;False;False;False;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Unlit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;True;True;True;False;False;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;True;1;LightMode=MotionVectors;False;False;0;;0;0;Standard;0;False;0
-Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;1;2464,-448;Float;False;True;-1;2;UnityEditor.ShaderGraphUnlitGUI;0;13;Fire2;2992e84f91cbeb14eab234972e07ea9d;True;Forward;0;1;Forward;8;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;False;False;False;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Unlit;True;5;True;12;all;0;False;True;1;1;False;;0;False;;1;1;False;;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;False;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;1;LightMode=UniversalForwardOnly;False;False;0;;0;0;Standard;24;Surface;0;0;  Blend;0;0;Two Sided;1;0;Forward Only;0;0;Cast Shadows;1;0;  Use Shadow Threshold;0;0;Receive Shadows;1;0;Motion Vectors;0;0;  Add Precomputed Velocity;0;0;GPU Instancing;1;0;LOD CrossFade;1;0;Built-in Fog;1;0;Meta Pass;0;0;Extra Pre Pass;0;0;Tessellation;0;638698460907872703;  Phong;1;638698424585048975;  Strength;1,False,;638698424872916701;  Type;0;638698425181481217;  Tess;16,False,;0;  Min;25,False,;638698425075645690;  Max;30,False,;638698425088381209;  Edge Length;16,False,;0;  Max Displacement;25,False,;0;Vertex Position,InvertActionOnDeselection;1;0;0;11;False;True;True;True;False;False;True;True;True;False;False;False;;False;0
+Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;1;2816,-336;Float;False;True;-1;2;UnityEditor.ShaderGraphUnlitGUI;0;13;Fire2;2992e84f91cbeb14eab234972e07ea9d;True;Forward;0;1;Forward;8;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;False;False;False;True;4;RenderPipeline=UniversalPipeline;RenderType=Transparent=RenderType;Queue=Transparent=Queue=0;UniversalMaterialType=Unlit;True;5;True;12;all;0;False;True;1;5;False;;10;False;;1;1;False;;10;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;False;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;2;False;;True;3;False;;True;True;0;False;;0;False;;True;1;LightMode=UniversalForwardOnly;False;False;0;;0;0;Standard;24;Surface;1;638698464198714652;  Blend;0;0;Two Sided;1;0;Forward Only;0;0;Cast Shadows;1;0;  Use Shadow Threshold;0;0;Receive Shadows;1;0;Motion Vectors;0;0;  Add Precomputed Velocity;0;0;GPU Instancing;1;0;LOD CrossFade;1;0;Built-in Fog;1;0;Meta Pass;0;0;Extra Pre Pass;0;0;Tessellation;0;638698460907872703;  Phong;1;638698424585048975;  Strength;1,False,;638698424872916701;  Type;0;638698425181481217;  Tess;16,False,;0;  Min;25,False,;638698425075645690;  Max;30,False,;638698425088381209;  Edge Length;16,False,;0;  Max Displacement;25,False,;0;Vertex Position,InvertActionOnDeselection;1;0;0;11;False;True;True;True;False;False;True;True;True;False;False;False;;False;0
+WireConnection;47;0;21;2
+WireConnection;47;1;48;0
+WireConnection;52;0;43;0
+WireConnection;52;1;53;0
+WireConnection;106;0;47;0
+WireConnection;18;0;52;0
+WireConnection;18;1;67;1
+WireConnection;44;0;52;0
+WireConnection;44;1;67;2
+WireConnection;56;0;106;0
+WireConnection;56;1;47;0
+WireConnection;45;0;18;0
+WireConnection;45;1;44;0
+WireConnection;96;0;95;0
+WireConnection;51;0;12;0
+WireConnection;51;1;56;0
+WireConnection;33;0;45;0
+WireConnection;33;1;32;0
+WireConnection;49;0;33;0
+WireConnection;49;1;51;0
+WireConnection;68;0;62;2
+WireConnection;68;1;69;0
+WireConnection;58;0;49;0
+WireConnection;58;1;60;0
+WireConnection;97;0;68;0
+WireConnection;97;2;98;0
+WireConnection;103;0;102;0
+WireConnection;103;1;97;0
+WireConnection;57;0;58;0
+WireConnection;57;1;104;0
+WireConnection;88;9;57;0
+WireConnection;88;10;103;0
+WireConnection;88;11;63;0
+WireConnection;112;0;88;0
+WireConnection;27;0;25;0
+WireConnection;27;1;112;0
+WireConnection;93;0;92;0
+WireConnection;93;1;88;0
+WireConnection;94;0;27;0
+WireConnection;94;1;93;0
+WireConnection;94;2;95;0
+WireConnection;111;0;56;0
+WireConnection;110;0;43;0
+WireConnection;110;1;111;0
+WireConnection;109;0;45;0
 WireConnection;84;0;83;2
 WireConnection;84;1;85;0
 WireConnection;82;1;84;0
@@ -1845,43 +2437,8 @@ WireConnection;76;0;77;0
 WireConnection;76;1;75;2
 WireConnection;79;0;76;0
 WireConnection;79;1;78;0
-WireConnection;27;0;25;0
-WireConnection;27;1;88;0
-WireConnection;93;0;92;0
-WireConnection;93;1;88;0
-WireConnection;94;0;27;0
-WireConnection;94;1;93;0
-WireConnection;94;2;95;0
-WireConnection;96;0;95;0
-WireConnection;51;0;12;0
-WireConnection;51;1;56;0
-WireConnection;56;1;47;0
-WireConnection;47;0;21;2
-WireConnection;47;1;48;0
-WireConnection;52;0;43;0
-WireConnection;52;1;53;0
-WireConnection;45;0;18;0
-WireConnection;45;1;44;0
-WireConnection;33;0;45;0
-WireConnection;33;1;32;0
-WireConnection;18;0;52;0
-WireConnection;18;1;67;1
-WireConnection;44;0;52;0
-WireConnection;44;1;67;2
-WireConnection;49;0;33;0
-WireConnection;49;1;51;0
-WireConnection;58;0;49;0
-WireConnection;58;1;60;0
-WireConnection;57;0;58;0
-WireConnection;88;9;57;0
-WireConnection;88;10;103;0
-WireConnection;88;11;63;0
-WireConnection;68;0;62;2
-WireConnection;68;1;69;0
-WireConnection;97;0;68;0
-WireConnection;97;2;98;0
-WireConnection;103;0;102;0
-WireConnection;103;1;97;0
+WireConnection;105;0;94;0
 WireConnection;1;2;94;0
+WireConnection;1;3;105;3
 ASEEND*/
-//CHKSM=45764FD89AC6921F7D00469CE8715925F65BE8F1
+//CHKSM=C39C0FD41E978C5FB9ACD51FEC7AEC837CEC8314

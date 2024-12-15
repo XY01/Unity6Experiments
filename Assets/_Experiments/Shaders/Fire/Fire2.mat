@@ -41,13 +41,14 @@ Material:
     - _AlphaCutoff: 0.5
     - _Displacement: 0.05
     - _DisplacementPnnerSpeed: -10
-    - _Distortion: 0.1
+    - _Distortion: 0.2
     - _ErosionSoftness: 1
-    - _ErosionStr: 1
+    - _ErosionStr: 0.73
     - _ErosionStrPow: 0.5
     - _ErosionVMaskExp: 0.5
     - _FireSmoke: 0
     - _Float0: 1
+    - _NoiseGenScale: 50
     - _NoiseScale: 25
     - _OffsetNoisScalar: 0.3
     - _PanSpeed: -1
@@ -64,8 +65,8 @@ Material:
     m_Colors:
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
     - _Freq: {r: 3, g: 0.4, b: 0, a: 0}
-    - _NoiseScales: {r: 8, g: 100, b: 0, a: 0}
-    - _UVFreq: {r: 2, g: 0.3, b: 0, a: 0}
+    - _NoiseScales: {r: 6.5, g: 100, b: 0, a: 0}
+    - _UVFreq: {r: 0.8, g: 0.1, b: 0, a: 0}
     - _Vector0: {r: 2, g: 0.3, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Smoke
+  m_Name: Fire2 Tall
   m_Shader: {fileID: 4800000, guid: 988c5dd561e37b34cb5df05e525745d7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -41,17 +41,17 @@ Material:
     - _AlphaCutoff: 0.5
     - _Displacement: 0.05
     - _DisplacementPnnerSpeed: -10
-    - _Distortion: 0.1
-    - _ErosionSoftness: 1.63
-    - _ErosionStr: 0.5
+    - _Distortion: 0.2
+    - _ErosionSoftness: 1.64
+    - _ErosionStr: 0.58
     - _ErosionStrPow: 0.5
-    - _ErosionVMaskExp: 1
-    - _FireSmoke: 1
+    - _ErosionVMaskExp: 0.5
+    - _FireSmoke: 0
     - _Float0: 1
-    - _NoiseGenScale: 40
+    - _NoiseGenScale: 31.1
     - _NoiseScale: 25
     - _OffsetNoisScalar: 0.3
-    - _PanSpeed: -0.5
+    - _PanSpeed: -1
     - _Pow: 0.78
     - _QueueControl: 0
     - _QueueOffset: 0
@@ -64,9 +64,9 @@ Material:
     - _TessValue: 32
     m_Colors:
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Freq: {r: 1.2, g: 0.4, b: 0, a: 0}
-    - _NoiseScales: {r: 8, g: 50, b: 0, a: 0}
-    - _UVFreq: {r: 1, g: 0.3, b: 0, a: 0}
+    - _Freq: {r: 2, g: 0.4, b: 0, a: 0}
+    - _NoiseScales: {r: 5, g: 93.66, b: 0, a: 0}
+    - _UVFreq: {r: 0.4, g: 0.1, b: 0, a: 0}
     - _Vector0: {r: 2, g: 0.3, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
