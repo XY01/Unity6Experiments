@@ -123,8 +123,9 @@ float heightInfluence;
 
 // Numerical stability parameters
 float minWeight = 0.1;
-static const float MIN_DIFFUSION = 0.0001;
+static const float MIN_DIFFUSION = 0.00001;
 static const float MIN_TIMESTEP = 0.001;
+static const float MIN_HEAT = 0.0001;
 
 float2 windDirection;
 float windSpeed = 1.0;
@@ -160,11 +161,10 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     float topHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, texelSize.y), 0).r;
     float bottomHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, -texelSize.y), 0).r;
 
-    float relativeHeat = (rightHeat + leftHeat + topHeat + bottomHeat) - currentHeat;
-
-    //if(relativeHeat == 0) return;    
+    // Return if there is no heat in surrounding pixels
+    float relativeHeat = rightHeat + leftHeat + topHeat + bottomHeat;
+    if(abs(relativeHeat) < MIN_HEAT) return;
     
-  
     
     // Sample neighboring heights
     float rightHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(texelSize.x, 0), 0).r;
@@ -177,51 +177,50 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     gradients.x = (rightHeight - leftHeight);
     gradients.y = (topHeight - bottomHeight);
     
-    
-   
-    //relativeHeat = abs(relativeHeat) < MIN_DIFFUSION ? 0 : relativeHeat;
- 
-    
-    // Calculate heat diffusion based on height gradients
-    float heatDiffusion = 0;
-    
-    // Calculate gradient vectors for each direction
-    float2 rightGrad = float2(gradients.x, 0);
-    float2 leftGrad = float2(-gradients.x, 0);
-    float2 topGrad = float2(0, gradients.y);
-    float2 bottomGrad = float2(0, -gradients.y);
+    // Calculate normalized wind force
+    // float rightWindForce = (dot(windDirection, float2(1, 0)) + 1) * 0.5 * windSpeed;
+    // float leftWindForce = (dot(windDirection, float2(-1, 0)) + 1) * 0.5 * windSpeed;
+    // float topWindForce = (dot(windDirection, float2(0, 1)) + 1) * 0.5 * windSpeed;
+    // float bottomWindForce = (dot(windDirection, float2(0, -1)) + 1) * 0.5 * windSpeed;
+    float rightWindForce = max(dot(windDirection, float2(1, 0)),0) * windSpeed;
+    float leftWindForce = max(dot(windDirection, float2(-1, 0)),0) * windSpeed;
+    float topWindForce = max(dot(windDirection, float2(0, 1)),0) * windSpeed;
+    float bottomWindForce = max(dot(windDirection, float2(0, -1)),0) * windSpeed;
 
-    float rightWindScalar = (dot(windDirection, float2(1, 0)) + 1) * 0.5 * windSpeed;
-    float leftWindScalar = (dot(windDirection, float2(-1, 0)) + 1) * 0.5 * windSpeed;
-    float topWindScalar = (dot(windDirection, float2(0, 1)) + 1) * 0.5 * windSpeed;
-    float bottomWindScalar = (dot(windDirection, float2(0, -1)) + 1) * 0.5 * windSpeed;
     // Weight diffusion by the inverse of the gradient magnitude
-    // float weightRight = 1.0 / (1.0 + heightInfluence * length(rightGrad));
-    // float weightLeft = 1.0 / (1.0 + heightInfluence * length(leftGrad));
-    // float weightTop = 1.0 / (1.0 + heightInfluence * length(topGrad));
-    // float weightBottom = 1.0 / (1.0 + heightInfluence * length(bottomGrad));
-    float weightRight = minWeight + (-gradients.x * heightInfluence) + rightWindScalar;
-    //weightRight = saturate(weightRight);
-    float weightLeft = minWeight + (gradients.x * heightInfluence) + leftWindScalar;
-    //weightLeft = saturate(weightLeft);
-    float weightTop = minWeight + (-gradients.y * heightInfluence) + topWindScalar;
-    //weightTop = saturate(weightTop);
-    float weightBottom = minWeight + (-gradients.y * heightInfluence) + bottomWindScalar;
-   // weightBottom = saturate(weightBottom);
+    // float weightRight = minWeight + max(-gradients.x * heightInfluence, 0) + rightWindForce;
+    // float weightLeft = minWeight + max(gradients.x * heightInfluence, 0) + leftWindForce;
+    // float weightTop = minWeight + max(-gradients.y * heightInfluence, 0) + topWindForce;
+    // float weightBottom = minWeight + max(-gradients.y * heightInfluence, 0) + bottomWindForce;
+    float weightRight = minWeight + max(-gradients.x * heightInfluence * rightWindForce, 0);
+    float weightLeft = minWeight + max(gradients.x * heightInfluence * leftWindForce, 0);
+    float weightTop = minWeight + max(-gradients.y * heightInfluence * topWindForce, 0);
+    float weightBottom = minWeight + max(gradients.y * heightInfluence * bottomWindForce, 0);
     
-    // Calculate weighted heat diffusion
-    heatDiffusion += (rightHeat - currentHeat) * weightRight;
-    heatDiffusion += (leftHeat - currentHeat) * weightLeft;
-    heatDiffusion += (topHeat - currentHeat) * weightTop;
-    heatDiffusion += (bottomHeat - currentHeat) * weightBottom;
+    // // Calculate weighted heat diffusion
+    // heatDiffusion += (rightHeat - currentHeat) * weightRight;
+    // heatDiffusion += (leftHeat - currentHeat) * weightLeft;
+    // heatDiffusion += (topHeat - currentHeat) * weightTop;
+    // heatDiffusion += (bottomHeat - currentHeat) * weightBottom;
+    
+    // Calculate weighted average of neighboring heat
+    float targetHeat =
+        currentHeat +
+        (rightHeat * weightRight + 
+        leftHeat * weightLeft + 
+        topHeat * weightTop + 
+        bottomHeat * weightBottom) * .25;
 
-    deltaTime = max(deltaTime, MIN_TIMESTEP);
-    
-    // Apply diffusion rate and time step
-    float newHeat = currentHeat + diffusionRate * heatDiffusion * relativeHeat * deltaTime;
-    
-    // Clamp heat values between 0 and 1
-    newHeat =  clamp(newHeat, 0, 1);
+    float finalHeat;
+    float heatDifference = targetHeat - currentHeat;
+    if(abs(heatDifference) >= MIN_DIFFUSION)
+    {
+        deltaTime = max(deltaTime, MIN_TIMESTEP);
+        float time = saturate(diffusionRate * deltaTime);
+        finalHeat = lerp(currentHeat, targetHeat, time);// diffusionRate * heatDiffusion * relativeHeat * deltaTime;
+        // Clamp heat values between 0 and 1
+        finalHeat =  clamp(finalHeat, 0, 1);
+    }
 
     // Output gradients
     //heatMapOut[id.xy] = float4((gradients.rg + 1) * 0.5, 0, 1);
@@ -230,6 +229,5 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
         debugBuffer[0] = weightRight;
     
     // Write the result
-    heatMapOut[id.xy] = float4(newHeat, 0, 0, 1);
-    
+    heatMapOut[id.xy] = float4(finalHeat, 0, 0, 1);    
 }
