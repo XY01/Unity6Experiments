@@ -1,0 +1,213 @@
+#pragma kernel BakeHeightGradient
+#pragma kernel HeatDiffusion
+
+// Input textures
+Texture2D<float4> heightMap;
+// Declare SamplerState for texture sampling
+SamplerState sampler_heightMap;
+
+// Output texture for gradients (RG channels store X,Y gradients)
+RWTexture2D<float4> gradientMap;
+
+
+// Sampling parameters
+float kernelSize = 2.0; // Controls the size of the sampling kernel
+float sobelScale = 1.0; // Adjusts the intensity of the gradients
+
+
+// Sobel kernel weights
+static const float3x3 sobelX = {
+    -1, 0, 1,
+    -2, 0, 2,
+    -1, 0, 1
+};
+
+static const float3x3 sobelY = {
+    -1, -2, -1,
+     0,  0,  0,
+     1,  2,  1
+};
+
+// Helper function to sample height with bilinear filtering
+float SampleHeight(float2 uv)
+{
+    return heightMap.SampleLevel(sampler_heightMap, uv, 0).r;
+}
+
+// Improved gradient calculation using Sobel operator with larger kernel
+float2 CalculateGradient(float2 uv, float2 texelSize)
+{
+    float2 gradient = 0;
+    
+    // Calculate weighted samples using Sobel operator
+    for(int y = -1; y <= 1; y++)
+    {
+        for(int x = -1; x <= 1; x++)
+        {
+            float2 offset = float2(x, y) * texelSize * kernelSize;
+            float sample = SampleHeight(uv + offset);
+            
+            gradient.x += sample;// * sobelX[y+1][x+1];
+            gradient.y += sample;// * sobelY[y+1][x+1];
+        }
+    }
+    
+    // Normalize and scale the gradient
+    gradient *= sobelScale / (8.0 * kernelSize);
+    
+    return gradient;
+}
+
+// Gaussian blur weights for 3x3 kernel
+static const float gaussianKernel[9] = {
+    0.0625, 0.125, 0.0625,
+    0.125,  0.25,  0.125,
+    0.0625, 0.125, 0.0625
+};
+
+// Apply Gaussian smoothing to reduce noise
+float2 SmoothGradient(float2 uv, float2 texelSize, float2 rawGradient)
+{
+    float2 smoothedGradient = rawGradient * gaussianKernel[4]; // Center weight
+    
+    for(int y = -1; y <= 1; y++)
+    {
+        for(int x = -1; x <= 1; x++)
+        {
+            if(x == 0 && y == 0) continue; // Skip center (already added)
+            
+            float2 offset = float2(x, y) * texelSize;
+            float2 neighborGrad = CalculateGradient(uv + offset, texelSize);
+            
+            int kernelIndex = (y + 1) * 3 + (x + 1);
+            smoothedGradient += neighborGrad * gaussianKernel[kernelIndex];
+        }
+    }
+    
+    return smoothedGradient;
+}
+
+[numthreads(8,8,1)]
+void BakeHeightGradient (uint3 id : SV_DispatchThreadID)
+{
+    uint width, height;
+    gradientMap.GetDimensions(width, height);
+    
+    if (id.x >= width || id.y >= height)
+        return;
+        
+    float2 uv = float2(id.xy) / float2(width, height);
+    float2 texelSize = float2(1.0f / width, 1.0f / height);
+    uv += texelSize * 0.5;
+    
+    // Calculate initial gradient
+    float2 rawGradient = CalculateGradient(uv, texelSize);
+    
+    // Apply smoothing
+    float2 finalGradient = SmoothGradient(uv, texelSize, rawGradient);
+    
+    // Store gradients in the R and G channels
+    gradientMap[id.xy] = float4(rawGradient.x, rawGradient.y, 0, 1);
+}
+
+
+
+
+Texture2D<float4> heatMapIn;
+RWTexture2D<float4> heatMapOut;
+
+// Simulation parameters
+float deltaTime;
+float diffusionRate;
+float heightInfluence;
+
+// Numerical stability parameters
+float minWeight = 0.1;
+static const float MIN_DIFFUSION = 0.0001;
+static const float MIN_TIMESTEP = 0.001;
+
+SamplerState sampler_heatMapIn;
+
+
+[numthreads(8,8,1)]
+void HeatDiffusion (uint3 id : SV_DispatchThreadID)
+{
+    // Get texture dimensions
+    uint width, height;
+    heatMapOut.GetDimensions(width, height);
+    
+    // Early exit if outside texture bounds
+    if (id.x >= width || id.y >= height)
+        return;
+        
+    // Calculate UV coordinates
+    float2 texelSize = float2(1.0f / (float)width, 1.0f / (float)height);
+    float2 uv = float2(id.xy) / float2(width, height);
+    uv += texelSize * 0.5;
+    
+    
+    // Sample current pixel's height and heat
+    float currentHeight = heightMap.SampleLevel(sampler_heightMap, uv, 0).r;
+    float currentHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv, 0).r;
+    
+    // Sample neighboring heights
+    float rightHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(texelSize.x, 0), 0).r;
+    float leftHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(-texelSize.x, 0), 0).r;
+    float topHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(0, texelSize.y), 0).r;
+    float bottomHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(0, -texelSize.y), 0).r;
+    
+    // Calculate height gradients
+    float2 gradients;
+    gradients.x = (rightHeight - leftHeight);
+    gradients.y = (topHeight - bottomHeight);
+    
+    
+    // Sample neighboring heat values
+    float rightHeat =  heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(texelSize.x, 0), 0).r;
+    float leftHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(-texelSize.x, 0), 0).r;
+    float topHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, texelSize.y), 0).r;
+    float bottomHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, -texelSize.y), 0).r;
+
+    float relativeHeat = (rightHeat + leftHeat + topHeat + bottomHeat) - currentHeat;
+    //relativeHeat = abs(relativeHeat) < MIN_DIFFUSION ? 0 : relativeHeat;
+ 
+    
+    // Calculate heat diffusion based on height gradients
+    float heatDiffusion = 0;
+    
+    // Calculate gradient vectors for each direction
+    float2 rightGrad = float2(gradients.x, 0);
+    float2 leftGrad = float2(-gradients.x, 0);
+    float2 topGrad = float2(0, gradients.y);
+    float2 bottomGrad = float2(0, -gradients.y);
+    
+    // Weight diffusion by the inverse of the gradient magnitude
+    // float weightRight = 1.0 / (1.0 + heightInfluence * length(rightGrad));
+    // float weightLeft = 1.0 / (1.0 + heightInfluence * length(leftGrad));
+    // float weightTop = 1.0 / (1.0 + heightInfluence * length(topGrad));
+    // float weightBottom = 1.0 / (1.0 + heightInfluence * length(bottomGrad));
+    float weightRight = minWeight + heightInfluence * -gradients.x;
+    float weightLeft = minWeight + heightInfluence * gradients.x;
+    float weightTop = minWeight + heightInfluence * -gradients.y;
+    float weightBottom = minWeight + heightInfluence * gradients.y;
+    
+    // Calculate weighted heat diffusion
+    heatDiffusion += (rightHeat - currentHeat) * weightRight;
+    heatDiffusion += (leftHeat - currentHeat) * weightLeft;
+    heatDiffusion += (topHeat - currentHeat) * weightTop;
+    heatDiffusion += (bottomHeat - currentHeat) * weightBottom;
+
+    deltaTime = max(deltaTime, MIN_TIMESTEP);
+    
+    // Apply diffusion rate and time step
+    float newHeat = currentHeat + diffusionRate * deltaTime * heatDiffusion * relativeHeat;
+    
+    // Clamp heat values between 0 and 1
+    newHeat =  clamp(newHeat, 0, 1);
+
+    // Output gradients
+    //heatMapOut[id.xy] = float4((gradients.rg + 1) * 0.5, 0, 1);
+    
+    // Write the result
+    heatMapOut[id.xy] = float4(newHeat, 0, 0, 1);
+}
