@@ -126,7 +126,12 @@ float minWeight = 0.1;
 static const float MIN_DIFFUSION = 0.0001;
 static const float MIN_TIMESTEP = 0.001;
 
+float2 windDirection;
+float windSpeed = 1.0;
+
 SamplerState sampler_heatMapIn;
+
+RWStructuredBuffer<float> debugBuffer;
 
 
 [numthreads(8,8,1)]
@@ -144,11 +149,22 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     float2 texelSize = float2(1.0f / (float)width, 1.0f / (float)height);
     float2 uv = float2(id.xy) / float2(width, height);
     uv += texelSize * 0.5;
-    
-    
+
     // Sample current pixel's height and heat
     float currentHeight = heightMap.SampleLevel(sampler_heightMap, uv, 0).r;
     float currentHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv, 0).r;
+
+    // Sample neighboring heat values
+    float rightHeat =  heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(texelSize.x, 0), 0).r;
+    float leftHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(-texelSize.x, 0), 0).r;
+    float topHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, texelSize.y), 0).r;
+    float bottomHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, -texelSize.y), 0).r;
+
+    float relativeHeat = (rightHeat + leftHeat + topHeat + bottomHeat) - currentHeat;
+
+    //if(relativeHeat == 0) return;    
+    
+  
     
     // Sample neighboring heights
     float rightHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(texelSize.x, 0), 0).r;
@@ -162,13 +178,7 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     gradients.y = (topHeight - bottomHeight);
     
     
-    // Sample neighboring heat values
-    float rightHeat =  heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(texelSize.x, 0), 0).r;
-    float leftHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(-texelSize.x, 0), 0).r;
-    float topHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, texelSize.y), 0).r;
-    float bottomHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, -texelSize.y), 0).r;
-
-    float relativeHeat = (rightHeat + leftHeat + topHeat + bottomHeat) - currentHeat;
+   
     //relativeHeat = abs(relativeHeat) < MIN_DIFFUSION ? 0 : relativeHeat;
  
     
@@ -180,16 +190,24 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     float2 leftGrad = float2(-gradients.x, 0);
     float2 topGrad = float2(0, gradients.y);
     float2 bottomGrad = float2(0, -gradients.y);
-    
+
+    float rightWindScalar = (dot(windDirection, float2(1, 0)) + 1) * 0.5 * windSpeed;
+    float leftWindScalar = (dot(windDirection, float2(-1, 0)) + 1) * 0.5 * windSpeed;
+    float topWindScalar = (dot(windDirection, float2(0, 1)) + 1) * 0.5 * windSpeed;
+    float bottomWindScalar = (dot(windDirection, float2(0, -1)) + 1) * 0.5 * windSpeed;
     // Weight diffusion by the inverse of the gradient magnitude
     // float weightRight = 1.0 / (1.0 + heightInfluence * length(rightGrad));
     // float weightLeft = 1.0 / (1.0 + heightInfluence * length(leftGrad));
     // float weightTop = 1.0 / (1.0 + heightInfluence * length(topGrad));
     // float weightBottom = 1.0 / (1.0 + heightInfluence * length(bottomGrad));
-    float weightRight = minWeight + heightInfluence * -gradients.x;
-    float weightLeft = minWeight + heightInfluence * gradients.x;
-    float weightTop = minWeight + heightInfluence * -gradients.y;
-    float weightBottom = minWeight + heightInfluence * gradients.y;
+    float weightRight = minWeight + (-gradients.x * heightInfluence) + rightWindScalar;
+    //weightRight = saturate(weightRight);
+    float weightLeft = minWeight + (gradients.x * heightInfluence) + leftWindScalar;
+    //weightLeft = saturate(weightLeft);
+    float weightTop = minWeight + (-gradients.y * heightInfluence) + topWindScalar;
+    //weightTop = saturate(weightTop);
+    float weightBottom = minWeight + (-gradients.y * heightInfluence) + bottomWindScalar;
+   // weightBottom = saturate(weightBottom);
     
     // Calculate weighted heat diffusion
     heatDiffusion += (rightHeat - currentHeat) * weightRight;
@@ -200,14 +218,18 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     deltaTime = max(deltaTime, MIN_TIMESTEP);
     
     // Apply diffusion rate and time step
-    float newHeat = currentHeat + diffusionRate * deltaTime * heatDiffusion * relativeHeat;
+    float newHeat = currentHeat + diffusionRate * heatDiffusion * relativeHeat * deltaTime;
     
     // Clamp heat values between 0 and 1
     newHeat =  clamp(newHeat, 0, 1);
 
     // Output gradients
     //heatMapOut[id.xy] = float4((gradients.rg + 1) * 0.5, 0, 1);
+
+    if(id.x == 512 && id.y == 512)
+        debugBuffer[0] = weightRight;
     
     // Write the result
     heatMapOut[id.xy] = float4(newHeat, 0, 0, 1);
+    
 }

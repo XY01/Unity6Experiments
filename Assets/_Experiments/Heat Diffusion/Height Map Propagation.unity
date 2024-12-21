@@ -343,7 +343,7 @@ Transform:
   m_GameObject: {fileID: 770899797}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.55, y: 0, z: -0.7}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -515,15 +515,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72b0eb35999973c45b7325ea79265271, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _diffusionRate: 15
-  _heightInfluence: 500
-  _minWeight: 0.3
+  _diffusionRate: 25
+  _heightInfluence: 30
+  _minWeight: 0.25
   _heatDiffusionShader: {fileID: 7200000, guid: b725d9e80986c774480ea098efacca42, type: 3}
-  _heightMap: {fileID: 2800000, guid: 28de227403898fa4da228dbe6c054f4d, type: 3}
+  _heightMap: {fileID: 2800000, guid: b9932787a6132904594158a3b98f7ec0, type: 3}
   _gradientMap: {fileID: 0}
   _heatMapA: {fileID: 0}
   _heatMapB: {fileID: 0}
   _material: {fileID: 2100000, guid: c7fabeb945d3637418b73037c17e19df, type: 2}
+  _windDirection: {fileID: 1933754229}
+  _windSpeed: 0
+  windDirection: {x: 0, y: 0}
   update: 1
 --- !u!4 &1263106524
 Transform:
@@ -540,6 +543,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1933754227
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1933754229}
+  - component: {fileID: 1933754228}
+  m_Layer: 0
+  m_Name: Wind
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!182 &1933754228
+WindZone:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1933754227}
+  m_Enabled: 1
+  m_Mode: 0
+  m_Radius: 20
+  m_WindMain: 1
+  m_WindTurbulence: 1
+  m_WindPulseMagnitude: 0.35
+  m_WindPulseFrequency: 0.01
+--- !u!4 &1933754229
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1933754227}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.69178206, z: -0, w: 0.7221064}
+  m_LocalPosition: {x: -7.12, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 87.543, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -548,3 +597,4 @@ SceneRoots:
   - {fileID: 203844589}
   - {fileID: 1263106524}
   - {fileID: 770899801}
+  - {fileID: 1933754229}

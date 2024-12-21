@@ -29,6 +29,11 @@ public class HeatDiffusion : MonoBehaviour
 
     public Material _material;
     
+    [SerializeField] Transform _windDirection;
+    [SerializeField] float _windSpeed = 1.0f;
+    
+    public Vector2 windDirection;
+    private ComputeBuffer resultBuffer;
     private void Start()
     {
         InitializeTextures();
@@ -43,6 +48,12 @@ public class HeatDiffusion : MonoBehaviour
         _gradientMap = CreateRenderTexture();
         _heatMapA = CreateRenderTexture();
         _heatMapB = CreateRenderTexture();
+        
+        // Create buffer for a single float
+        resultBuffer = new ComputeBuffer(1, sizeof(float));
+        
+        // Set the buffer in the shader
+        _heatDiffusionShader.SetBuffer(1, "debugBuffer", resultBuffer);
     }
 
     private void BakeGradientmap()
@@ -128,10 +139,22 @@ public class HeatDiffusion : MonoBehaviour
         _heatDiffusionShader.SetFloat(_diffusionRateId, _diffusionRate);
         _heatDiffusionShader.SetFloat(_heightInfluenceId, _heightInfluence);
         
+        windDirection = new Vector2(_windDirection.forward.x, _windDirection.forward.z);
+        windDirection.Normalize();
+        
+        _heatDiffusionShader.SetVector("windDirection", windDirection);
+        _heatDiffusionShader.SetFloat("windSpeed", _windSpeed);
+        
         // Dispatch the compute shader
         int threadGroupsX = Mathf.CeilToInt(_heightMap.width / 8.0f);
         int threadGroupsY = Mathf.CeilToInt(_heightMap.height / 8.0f);
         _heatDiffusionShader.Dispatch(1, threadGroupsX, threadGroupsY, 1);
+        
+        // Read back the data
+        float[] result = new float[1];
+        resultBuffer.GetData(result);
+        
+        Debug.Log("Result: " + result[0]);
         
         // Swap buffers
         _pingPong = !_pingPong;
@@ -152,6 +175,8 @@ public class HeatDiffusion : MonoBehaviour
         // Cleanup
         if (_heatMapA != null) _heatMapA.Release();
         if (_heatMapB != null) _heatMapB.Release();
+        
+        resultBuffer.Release();
     }
     
     // Optional: Methods to interact with the simulation
