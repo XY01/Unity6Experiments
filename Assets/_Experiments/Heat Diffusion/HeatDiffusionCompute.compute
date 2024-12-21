@@ -188,14 +188,15 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     float bottomWindForce = max(dot(windDirection, float2(0, -1)),0) * windSpeed;
 
     // Weight diffusion by the inverse of the gradient magnitude
-    // float weightRight = minWeight + max(-gradients.x * heightInfluence, 0) + rightWindForce;
-    // float weightLeft = minWeight + max(gradients.x * heightInfluence, 0) + leftWindForce;
-    // float weightTop = minWeight + max(-gradients.y * heightInfluence, 0) + topWindForce;
-    // float weightBottom = minWeight + max(-gradients.y * heightInfluence, 0) + bottomWindForce;
-    float weightRight = minWeight + max(-gradients.x * heightInfluence * rightWindForce, 0);
-    float weightLeft = minWeight + max(gradients.x * heightInfluence * leftWindForce, 0);
-    float weightTop = minWeight + max(-gradients.y * heightInfluence * topWindForce, 0);
-    float weightBottom = minWeight + max(gradients.y * heightInfluence * bottomWindForce, 0);
+    // float weightRight = minWeight + max(-gradients.x * heightInfluence * rightWindForce, 0);
+    // float weightLeft = minWeight + max(gradients.x * heightInfluence * leftWindForce, 0);
+    // float weightTop = minWeight + max(-gradients.y * heightInfluence * topWindForce, 0);
+    // float weightBottom = minWeight + max(gradients.y * heightInfluence * bottomWindForce, 0);
+
+    float weightRight = minWeight + max(max(-gradients.x,0) * heightInfluence * rightWindForce, 0);
+    float weightLeft = minWeight + max(max(gradients.x,0) * heightInfluence * leftWindForce, 0);
+    float weightTop = minWeight + max(max(-gradients.y,0) * heightInfluence * topWindForce, 0);
+    float weightBottom = minWeight + max(max(gradients.y,0) * heightInfluence * bottomWindForce, 0);
     
     // // Calculate weighted heat diffusion
     // heatDiffusion += (rightHeat - currentHeat) * weightRight;
