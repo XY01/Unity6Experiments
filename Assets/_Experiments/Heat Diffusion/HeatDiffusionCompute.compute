@@ -143,6 +143,15 @@ float inverseLerp(float start, float end, float value) {
     return (value - start) / (end - start);
 }
 
+float2 adjustWindByHeight(float2 windDir, float2 slopeDir, float heightGradient)
+{
+    // perpendicular slope
+    slopeDir = float2(slopeDir.y, slopeDir.x);
+    // Blend between wind direction and slope-deflected direction
+    float deflectionStrength = length(slopeDir) * heightGradient;
+    return normalize(lerp(windDir, normalize(slopeDir), deflectionStrength));
+}
+
 [numthreads(8,8,1)]
 void HeatDiffusion (uint3 id : SV_DispatchThreadID)
 {
