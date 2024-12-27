@@ -229,13 +229,13 @@ MonoBehaviour:
   m_RequiresOpaqueTextureOption: 2
   m_CameraType: 0
   m_Cameras: []
-  m_RendererIndex: -1
+  m_RendererIndex: 1
   m_VolumeLayerMask:
     serializedVersion: 2
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -485,7 +485,7 @@ GameObject:
   - component: {fileID: 295613616}
   - component: {fileID: 295613615}
   m_Layer: 0
-  m_Name: Quad
+  m_Name: Fire
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -574,12 +574,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 295613614}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.4233627, y: 2.9482336, z: 0.9172446}
-  m_LocalScale: {x: 15.914605, y: 5.6846, z: 5.6846}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -9.32937, y: -3.5112348, z: 10.38763}
+  m_LocalScale: {x: 14.6837225, y: 3.5743058, z: 3.5743058}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1344059760}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &311363463
 GameObject:
@@ -1301,6 +1301,9 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 636694020}
+  - {fileID: 295613618}
+  - {fileID: 1659207307}
+  - {fileID: 1353826210}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1353826206
@@ -1316,7 +1319,7 @@ GameObject:
   - component: {fileID: 1353826208}
   - component: {fileID: 1353826207}
   m_Layer: 0
-  m_Name: Quad (2)
+  m_Name: Fire
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1405,12 +1408,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1353826206}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.49, y: 2.9482336, z: 5.92}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -9.26277, y: -2.4030013, z: 15.390386}
   m_LocalScale: {x: 15.914605, y: 5.6846, z: 5.6846}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1344059760}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1657899574
 GameObject:
@@ -1546,7 +1549,7 @@ GameObject:
   - component: {fileID: 1659207305}
   - component: {fileID: 1659207304}
   m_Layer: 0
-  m_Name: Quad (1)
+  m_Name: Fire
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1635,12 +1638,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1659207303}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.2, y: 2.9482336, z: 3.59}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -7.5527697, y: -2.4030013, z: 13.060386}
   m_LocalScale: {x: 15.914605, y: 5.6846, z: 5.6846}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1344059760}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1716941920
 GameObject:
@@ -2022,7 +2025,4 @@ SceneRoots:
   - {fileID: 55364878}
   - {fileID: 1657899576}
   - {fileID: 1344059760}
-  - {fileID: 295613618}
-  - {fileID: 1659207307}
-  - {fileID: 1353826210}
   - {fileID: 1980032856}
