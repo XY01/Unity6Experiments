@@ -517,7 +517,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _diffusionRate: 3
   _heightInfluence: 50
-  _minWeight: 0.01
+  _minWeight: 0.025
+  _fuelNoiseScalar: 100
   _heatDiffusionShader: {fileID: 7200000, guid: b725d9e80986c774480ea098efacca42, type: 3}
   _windDirection: {fileID: 1933754229}
   _windSpeed: 3

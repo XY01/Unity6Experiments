@@ -126,11 +126,11 @@ float minWeight = 0.1;
 static const float MIN_DIFFUSION = 0.00001;
 static const float MIN_TIMESTEP = 0.001;
 static const float MIN_HEAT = 0.0001;
-static const float COMBUSTION_TEMP = 0.2;
+static const float COMBUSTION_TEMP = 0.3;
 
-static const float FUEL_DISSIPATION = 0.1;
-static const float NOFUEL_HEATLOSS = 0.3;
-static const float AMBIENT_HEATLOSS = 0.001;
+static const float FUEL_DISSIPATION = 0.05;
+static const float NOFUEL_HEATLOSS = 0.8;
+static const float AMBIENT_HEATLOSS = 0.2;
 
 float2 windDirection;
 float windSpeed = 1.0;
@@ -185,12 +185,12 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     }
     
     //----------------------------------------------------------------------  HEAT LOSS
-    float heatLoss = fuelAmount <= .1 ? NOFUEL_HEATLOSS : AMBIENT_HEATLOSS;
+    float heatLoss = fuelAmount <= .01 ? NOFUEL_HEATLOSS : AMBIENT_HEATLOSS;
     currentHeat -= heatLoss * deltaTime;
     currentHeat = max(currentHeat, 0);
    
     //-------------------------------------------------------------- Return if there is no heat in surrounding pixels
-    if(abs(surroundingHeat) < COMBUSTION_TEMP)
+    if(abs(surroundingHeat) < COMBUSTION_TEMP * .25)
     {
         // Write the result
         heatMapOut[id.xy] = float4(currentHeat, 0, fuelAmount, 1);   
@@ -210,14 +210,18 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     gradients.y = (topHeight - bottomHeight);
     
     // Calculate normalized wind force
-    // float rightWindForce = (dot(windDirection, float2(1, 0)) + 1) * 0.5 * windSpeed;
-    // float leftWindForce = (dot(windDirection, float2(-1, 0)) + 1) * 0.5 * windSpeed;
-    // float topWindForce = (dot(windDirection, float2(0, 1)) + 1) * 0.5 * windSpeed;
-    // float bottomWindForce = (dot(windDirection, float2(0, -1)) + 1) * 0.5 * windSpeed;
-    float rightWindForce = max(dot(windDirection, float2(1, 0)),0) * windSpeed;
-    float leftWindForce = max(dot(windDirection, float2(-1, 0)),0) * windSpeed;
-    float topWindForce = max(dot(windDirection, float2(0, 1)),0) * windSpeed;
-    float bottomWindForce = max(dot(windDirection, float2(0, -1)),0) * windSpeed;
+    float rightWindForce = (dot(windDirection, float2(1, 0)) + 1) * 0.5 * windSpeed;
+    rightWindForce*=rightWindForce;
+    float leftWindForce = (dot(windDirection, float2(-1, 0)) + 1) * 0.5 * windSpeed;
+    leftWindForce*=leftWindForce;
+    float topWindForce = (dot(windDirection, float2(0, 1)) + 1) * 0.5 * windSpeed;
+    topWindForce*=topWindForce;
+    float bottomWindForce = (dot(windDirection, float2(0, -1)) + 1) * 0.5 * windSpeed;
+    bottomWindForce*=bottomWindForce;
+    // float rightWindForce = max(dot(windDirection, float2(1, 0)),0) * windSpeed;
+    // float leftWindForce = max(dot(windDirection, float2(-1, 0)),0) * windSpeed;
+    // float topWindForce = max(dot(windDirection, float2(0, 1)),0) * windSpeed;
+    // float bottomWindForce = max(dot(windDirection, float2(0, -1)),0) * windSpeed;
 
     // Weight diffusion by the inverse of the gradient magnitude
     // float weightRight = minWeight + max(-gradients.x * heightInfluence * rightWindForce, 0);
@@ -246,7 +250,7 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
             topHeat * weightTop + 
             bottomHeat * weightBottom) * .25;
     
-    float targetHeat = currentHeat + weightedHeat * fuelAmount;
+    float targetHeat = currentHeat + weightedHeat * fuelAmount;// (.2f + .8f * fuelAmount);
       
 
     float finalHeat;
@@ -257,7 +261,7 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
         float time = saturate(diffusionRate * deltaTime);
         finalHeat = lerp(currentHeat, targetHeat, time);// diffusionRate * heatDiffusion * relativeHeat * deltaTime;
         // Clamp heat values between 0 and 1
-        finalHeat =  clamp(finalHeat, 0, 1);
+        finalHeat = clamp(finalHeat, 0, 1);
     }
 
     // Output gradients

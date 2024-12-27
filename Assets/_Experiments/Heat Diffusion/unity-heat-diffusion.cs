@@ -111,7 +111,7 @@ public class HeatDiffusion : MonoBehaviour
                 initialHeat.SetPixel(x, y, Color.black);
                 float xNorm = x/(float)_heightMap.width;
                 float yNorm = y/(float)_heightMap.height;
-                fuelAmount = .3f + .7f * Mathf.PerlinNoise(xNorm*_fuelNoiseScalar, yNorm*_fuelNoiseScalar);
+                fuelAmount = .4f + .6f * Mathf.PerlinNoise(xNorm*_fuelNoiseScalar, yNorm*_fuelNoiseScalar);
                 float dist = Vector2.Distance(new Vector2(x/(float)_heightMap.width, y/(float)_heightMap.height), center);
                 float fire = dist < radius ? Mathf.Clamp01(1-dist/radius) : 0;
                 

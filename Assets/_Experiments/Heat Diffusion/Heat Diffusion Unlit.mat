@@ -167,7 +167,8 @@ Material:
     - _CameraFadeParams: {r: 0, g: 0, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FuelCol: {r: 0, g: 0.02352953, b: 1, a: 0.29803923}
+    - _FireCol: {r: 64, g: 1.1474624, b: 0, a: 0}
+    - _FuelCol: {r: 0.0145238275, g: 0.305, b: 0, a: 1}
     - _SoftParticleFadeParams: {r: 0, g: 0, b: 0, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
