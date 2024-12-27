@@ -233,13 +233,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 203844586}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
+  m_LocalRotation: {x: 0.20715123, y: -0.25279713, z: 0.055506, w: 0.9434517}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+  m_LocalEulerAnglesHint: {x: 24.768, y: -30, z: 0}
 --- !u!1 &770899797
 GameObject:
   m_ObjectHideFlags: 0
@@ -516,13 +516,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _diffusionRate: 3
-  _heightInfluence: 50
-  _minWeight: 0.025
-  _fuelNoiseScalar: 100
+  _heightInfluence: 100
+  _minWeight: 0.015
+  _fuelNoiseScalar: 200
   _heatDiffusionShader: {fileID: 7200000, guid: b725d9e80986c774480ea098efacca42, type: 3}
   _windDirection: {fileID: 1933754229}
-  _windSpeed: 3
-  _heightMap: {fileID: 2800000, guid: bc6ec24432530cd459f1b74dc11d118c, type: 3}
+  _windSpeed: 2.5
+  _heightMap: {fileID: 2800000, guid: b9932787a6132904594158a3b98f7ec0, type: 3}
   _gradientMap: {fileID: 0}
   _heatMapA: {fileID: 0}
   _heatMapB: {fileID: 0}
