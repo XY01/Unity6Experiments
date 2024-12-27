@@ -8,7 +8,12 @@ public class HeatDiffusion : MonoBehaviour
     [SerializeField] private float _diffusionRate = 1.0f;
     [SerializeField] private float _heightInfluence = 1.0f;
     [SerializeField] private float _minWeight = 0.1f;
+    [SerializeField] float _fuelNoiseScalar = 40;
     [SerializeField] private ComputeShader _heatDiffusionShader;
+    
+    [Header("Wind")]
+    [SerializeField] Transform _windDirection;
+    [SerializeField] float _windSpeed = 1.0f;
     
     [Header("Input Textures")]
     [SerializeField] private Texture2D _heightMap;
@@ -29,8 +34,10 @@ public class HeatDiffusion : MonoBehaviour
 
     public Material _material;
     
-    [SerializeField] Transform _windDirection;
-    [SerializeField] float _windSpeed = 1.0f;
+  
+    
+    public bool update = true;
+    public bool logBuffer;
     
     public Vector2 windDirection;
     private ComputeBuffer resultBuffer;
@@ -92,6 +99,8 @@ public class HeatDiffusion : MonoBehaviour
         GL.Clear(true, true, Color.black);
 
         Vector2 center = new Vector2(0.5f, 0.5f);
+        float fuelAmount = Random.Range(0.5f, 1f);
+        float radius = 0.05f;
         // Optional: Add some initial heat sources
         // You can modify this or expose it as parameters
         Texture2D initialHeat = new Texture2D(_heightMap.width, _heightMap.height);
@@ -100,24 +109,29 @@ public class HeatDiffusion : MonoBehaviour
             for (int y = 0; y < _heightMap.height; y++)
             {
                 initialHeat.SetPixel(x, y, Color.black);
-                
+                float xNorm = x/(float)_heightMap.width;
+                float yNorm = y/(float)_heightMap.height;
+                fuelAmount = .3f + .7f * Mathf.PerlinNoise(xNorm*_fuelNoiseScalar, yNorm*_fuelNoiseScalar);
                 float dist = Vector2.Distance(new Vector2(x/(float)_heightMap.width, y/(float)_heightMap.height), center);
-                float fire = dist < .05f ? 1 : 0;
+                float fire = dist < radius ? Mathf.Clamp01(1-dist/radius) : 0;
                 
                 // Example: Add some heat sources
                 //if (Random.value > 0.97f)
                 //{
-                    initialHeat.SetPixel(x, y, new Color(fire, 0, 0, 1));
+                    
+                    initialHeat.SetPixel(x, y, new Color(fire, 0, fuelAmount, 1));
                 //}
                 
             }
         }
         initialHeat.Apply();
         Graphics.Blit(initialHeat, _heatMapA);
+        Graphics.Blit(initialHeat, _heatMapB);
         Destroy(initialHeat);
     }
     
-    public bool update = true;
+   
+
     private void FixedUpdate()
     {
         if(!update) return;
@@ -154,7 +168,8 @@ public class HeatDiffusion : MonoBehaviour
         float[] result = new float[1];
         resultBuffer.GetData(result);
         
-        Debug.Log("Result: " + result[0]);
+        if(logBuffer)
+            Debug.Log("Result: " + result[0]);
         
         // Swap buffers
         _pingPong = !_pingPong;

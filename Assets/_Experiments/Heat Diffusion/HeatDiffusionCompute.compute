@@ -126,6 +126,11 @@ float minWeight = 0.1;
 static const float MIN_DIFFUSION = 0.00001;
 static const float MIN_TIMESTEP = 0.001;
 static const float MIN_HEAT = 0.0001;
+static const float COMBUSTION_TEMP = 0.2;
+
+static const float FUEL_DISSIPATION = 0.1;
+static const float NOFUEL_HEATLOSS = 0.3;
+static const float AMBIENT_HEATLOSS = 0.001;
 
 float2 windDirection;
 float windSpeed = 1.0;
@@ -134,6 +139,9 @@ SamplerState sampler_heatMapIn;
 
 RWStructuredBuffer<float> debugBuffer;
 
+float inverseLerp(float start, float end, float value) {
+    return (value - start) / (end - start);
+}
 
 [numthreads(8,8,1)]
 void HeatDiffusion (uint3 id : SV_DispatchThreadID)
@@ -151,9 +159,13 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     float2 uv = float2(id.xy) / float2(width, height);
     uv += texelSize * 0.5;
 
+    deltaTime = max(deltaTime, MIN_TIMESTEP);
+
     // Sample current pixel's height and heat
     float currentHeight = heightMap.SampleLevel(sampler_heightMap, uv, 0).r;
-    float currentHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv, 0).r;
+    float4 currentSample = heatMapIn.SampleLevel(sampler_heatMapIn, uv, 0);
+    float currentHeat = currentSample.r;
+    float fuelAmount = heatMapIn[id.xy].b;
 
     // Sample neighboring heat values
     float rightHeat =  heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(texelSize.x, 0), 0).r;
@@ -162,15 +174,35 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     float bottomHeat = heatMapIn.SampleLevel(sampler_heatMapIn, uv + float2(0, -texelSize.y), 0).r;
 
     // Return if there is no heat in surrounding pixels
-    float relativeHeat = rightHeat + leftHeat + topHeat + bottomHeat;
-    if(abs(relativeHeat) < MIN_HEAT) return;
+    float surroundingHeat = rightHeat + leftHeat + topHeat + bottomHeat;
+
+
+    //----------------------------------------------------------------------  FUEL LOSS
+    if(currentHeat > COMBUSTION_TEMP)
+    {
+        fuelAmount -= deltaTime * FUEL_DISSIPATION;
+        fuelAmount = max(fuelAmount, 0);
+    }
+    
+    //----------------------------------------------------------------------  HEAT LOSS
+    float heatLoss = fuelAmount <= .1 ? NOFUEL_HEATLOSS : AMBIENT_HEATLOSS;
+    currentHeat -= heatLoss * deltaTime;
+    currentHeat = max(currentHeat, 0);
+   
+    //-------------------------------------------------------------- Return if there is no heat in surrounding pixels
+    if(abs(surroundingHeat) < COMBUSTION_TEMP)
+    {
+        // Write the result
+        heatMapOut[id.xy] = float4(currentHeat, 0, fuelAmount, 1);   
+        return;
+    }
     
     
     // Sample neighboring heights
-    float rightHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(texelSize.x, 0), 0).r;
-    float leftHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(-texelSize.x, 0), 0).r;
-    float topHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(0, texelSize.y), 0).r;
-    float bottomHeight = heightMap.SampleLevel(sampler_heightMap, uv + float2(0, -texelSize.y), 0).r;
+    float rightHeight =     heightMap.SampleLevel(sampler_heightMap, uv + float2(texelSize.x, 0), 0).r;
+    float leftHeight =      heightMap.SampleLevel(sampler_heightMap, uv + float2(-texelSize.x, 0), 0).r;
+    float topHeight =       heightMap.SampleLevel(sampler_heightMap, uv + float2(0, texelSize.y), 0).r;
+    float bottomHeight =    heightMap.SampleLevel(sampler_heightMap, uv + float2(0, -texelSize.y), 0).r;
     
     // Calculate height gradients
     float2 gradients;
@@ -193,10 +225,13 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     // float weightTop = minWeight + max(-gradients.y * heightInfluence * topWindForce, 0);
     // float weightBottom = minWeight + max(gradients.y * heightInfluence * bottomWindForce, 0);
 
-    float weightRight = minWeight + max(max(-gradients.x,0) * heightInfluence * rightWindForce, 0);
-    float weightLeft = minWeight + max(max(gradients.x,0) * heightInfluence * leftWindForce, 0);
-    float weightTop = minWeight + max(max(-gradients.y,0) * heightInfluence * topWindForce, 0);
-    float weightBottom = minWeight + max(max(gradients.y,0) * heightInfluence * bottomWindForce, 0);
+    float windSpeedLerp = 1-saturate(inverseLerp(.3, 1, windSpeed));
+    float ambientSpread = lerp(0, minWeight, windSpeedLerp);
+    
+    float weightRight =     ambientSpread + max(-gradients.x,minWeight) * heightInfluence * rightWindForce;
+    float weightLeft =      ambientSpread + max(gradients.x,minWeight)  * heightInfluence * leftWindForce;
+    float weightTop =       ambientSpread + max(-gradients.y,minWeight) * heightInfluence * topWindForce;
+    float weightBottom =    ambientSpread + max(gradients.y,minWeight)  * heightInfluence * bottomWindForce;
     
     // // Calculate weighted heat diffusion
     // heatDiffusion += (rightHeat - currentHeat) * weightRight;
@@ -205,18 +240,20 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
     // heatDiffusion += (bottomHeat - currentHeat) * weightBottom;
     
     // Calculate weighted average of neighboring heat
-    float targetHeat =
-        currentHeat +
-        (rightHeat * weightRight + 
-        leftHeat * weightLeft + 
-        topHeat * weightTop + 
-        bottomHeat * weightBottom) * .25;
+    float weightedHeat =
+        (   rightHeat * weightRight + 
+            leftHeat * weightLeft + 
+            topHeat * weightTop + 
+            bottomHeat * weightBottom) * .25;
+    
+    float targetHeat = currentHeat + weightedHeat * fuelAmount;
+      
 
     float finalHeat;
     float heatDifference = targetHeat - currentHeat;
     if(abs(heatDifference) >= MIN_DIFFUSION)
     {
-        deltaTime = max(deltaTime, MIN_TIMESTEP);
+       
         float time = saturate(diffusionRate * deltaTime);
         finalHeat = lerp(currentHeat, targetHeat, time);// diffusionRate * heatDiffusion * relativeHeat * deltaTime;
         // Clamp heat values between 0 and 1
@@ -230,5 +267,5 @@ void HeatDiffusion (uint3 id : SV_DispatchThreadID)
         debugBuffer[0] = weightRight;
     
     // Write the result
-    heatMapOut[id.xy] = float4(finalHeat, 0, 0, 1);    
+    heatMapOut[id.xy] = float4(finalHeat, 0, fuelAmount, 1);    
 }

@@ -515,19 +515,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72b0eb35999973c45b7325ea79265271, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _diffusionRate: 30
-  _heightInfluence: 10
-  _minWeight: 0.05
+  _diffusionRate: 3
+  _heightInfluence: 50
+  _minWeight: 0.01
   _heatDiffusionShader: {fileID: 7200000, guid: b725d9e80986c774480ea098efacca42, type: 3}
+  _windDirection: {fileID: 1933754229}
+  _windSpeed: 3
   _heightMap: {fileID: 2800000, guid: bc6ec24432530cd459f1b74dc11d118c, type: 3}
   _gradientMap: {fileID: 0}
   _heatMapA: {fileID: 0}
   _heatMapB: {fileID: 0}
   _material: {fileID: 2100000, guid: c7fabeb945d3637418b73037c17e19df, type: 2}
-  _windDirection: {fileID: 1933754229}
-  _windSpeed: 10
-  windDirection: {x: 0, y: 0}
   update: 1
+  logBuffer: 0
+  windDirection: {x: 0, y: 0}
 --- !u!4 &1263106524
 Transform:
   m_ObjectHideFlags: 0
